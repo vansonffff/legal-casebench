@@ -1,0 +1,21 @@
+{
+  "schema": "shared-legal-skills/manifest",
+  "version": 1,
+  "skills": {
+    "legal-case-bench": {
+      "version": "3.2.8",
+      "common": "skills/legal-case-bench/common",
+      "target_overlays": {
+        "codex": "skills/legal-case-bench/compat/codex"
+      },
+      "directory_includes": {
+        "scripts/vendor/yaml": "scripts/vendor/yaml"
+      },
+      "includes": {
+        "shared/references/research-artifacts.md": "references/research-artifacts.md",
+        "scripts/vendor/PyYAML-LICENSE": "scripts/vendor/PyYAML-LICENSE",
+        "skills/legal-case-bench/LICENSE": "LICENSE"
+      }
+    }
+  }
+}

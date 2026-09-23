@@ -1,0 +1,17 @@
+{
+  "name": "legal-case-bench",
+  "version": "3.2.8",
+  "entrypoint": "SKILL.md",
+  "description": "法律案件工作台：Matter Architecture（Matter Contract v1 / State v4 / Registry v2 / Legacy Migration）",
+  "compatibility": [
+    "workbuddy",
+    "myagents",
+    "codex",
+    "dsh"
+  ],
+  "tags": [
+    "legal"
+  ],
+  "dependencies": [],
+  "source": "local"
+}

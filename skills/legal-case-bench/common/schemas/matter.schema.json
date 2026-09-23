@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shared-legal-skills.local/legal-case-bench/matter.schema.json",
+  "title": "Legal Case Bench Matter Contract",
+  "description": "Matter identity and low-frequency configuration. Runtime facts and artifacts belong to _case_state.json.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "matter"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "matter": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "litigation",
+            "bankruptcy",
+            "non-litigation",
+            "other",
+            "unclassified"
+          ]
+        },
+        "subtypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "country": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "province": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "court": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "engagement": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "administrator",
+            "appellant",
+            "applicant",
+            "creditor",
+            "debtor",
+            "defendant",
+            "investor",
+            "other",
+            "plaintiff",
+            "respondent",
+            "respondent-to-application",
+            "restructuring-advisor",
+            "third-party",
+            "unknown"
+          ],
+          "description": "规范角色 token，取值受 matter.type 约束；见 references/matter-vocabulary.md。展示层可翻译，Contract 层只写 token。"
+        },
+        "represented_party": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "procedure": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "case_tier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "routine",
+            "complex",
+            "critical",
+            null
+          ]
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$"
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
