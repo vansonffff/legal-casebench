@@ -1,6 +1,6 @@
 # 共同案件工作台协议
 
-共享根默认为 `~/Documents/My Legal-agents`。各 harness 读写同一案件事实层，但不共享完整聊天、临时上下文、模型缓存或凭据。
+共享根为 `~/Documents/My Legal-agents`。各 harness 读写同一案件事实层，但不共享完整聊天、临时上下文、模型缓存或凭据。
 
 ## 案件结构
 
@@ -8,6 +8,7 @@
 <工作区根>/
   _registry.json          # 全部 Matter 的登记：matters[] 权威，cases[] 派生镜像
   _INDEX.md               # 总索引
+  _practice/               # 用户确认后沉淀的跨案办案经验；仅供 Recall
 
 <案件名>/                  # = Matter Root（含 matter.yaml 的目录）
   matter.yaml             # Matter Contract v1：身份与稳定属性（matter.id / type / role / stage）
@@ -56,6 +57,7 @@ load notes          00-案件笔记.md 末尾
 6. 案号、法条状态、金额、日期和主体名称必须回源；未核验写明“未核验到”或“本次条件下未发现”。
 7. 与案件有关的法律或类案检索必须遵守 `references/research-artifacts.md`。
 8. 普通案件问答产生新事实线索、用户口径、策略结论、风险或待办时，按 `references/case-notes.md` 在最终回复前追加案件笔记；不把完整回答复制进笔记。
+9. 4.0 可选的 Proceeding、Authority Reference、Final Artifact 仍写入同一个 State v4；经验沉淀须用户明确确认，历史经验进入新案前重新联网核验。详见各专项 reference。
 
 ## 案件强度
 

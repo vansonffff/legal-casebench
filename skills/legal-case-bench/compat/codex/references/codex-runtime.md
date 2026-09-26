@@ -4,13 +4,13 @@
 
 ## 工具与运行环境
 - Python：`~/.codex/skill-runtime/legal/bin/python`。缺失时先报告依赖问题，不静默借用其他产品的虚拟环境。
-- Node：系统 `node`，运行技能 JS 时设置 `NODE_PATH="$HOME/.codex/skill-runtime/node_modules"`；依赖记录在 skill-runtime/package.json。
+- Node：系统 `node`，运行技能 JS 时设置 `NODE_PATH="~/.codex/skill-runtime/node_modules"`；依赖记录在 skill-runtime/package.json。
 - 获取 Codex 自带文档渲染等运行环境，使用 `load_workspace_dependencies`，不要硬编码随版本变化的运行时目录。
 - 读取 PDF 文本层、Word、Excel 原生结构；扫描件由 pdf-ocr-extractor 路由。缺失内容标待核，不以零、无担保或猜测补齐。
 - 元典仅用统一 MCP。CLI 参数以 help 为准，未接入工具如实说明。
 
 ## 工作台与版本
-- 办案共享根默认为 `~/Documents/My Legal-agents`，与 WorkBuddy、myagents 共用案件登记、状态和产物；不要复制或重新初始化已有案件。
+- 办案共享根：`~/Documents/My Legal-agents`，与 WorkBuddy、myagents 共用案件登记、状态和产物；不要复制或重新初始化已有案件。
 - 原始材料目录只读。过程稿放 `<案件>/01-过程稿/<任务>/20-过程稿`，被引用的 OCR、提取文本等放同任务 `10-中间转换`；保留材料路径、页码、性质与处理说明。独立非办案任务遵循当前 Codex 工作区的 work/ 与 outputs/ 规则。
 - 已交付或用户手工改过的文稿默认另存下一版本；用户明确要求覆盖时按授权执行。用户主动删除的内容不自行恢复。
 - 案件索引写入通过 `register_case.py`；状态更新使用 `state_update.py` 的共享锁与 hash 预检。保留未认识的字段，发现外部修改就停止覆盖并重新读取；不得绕过共同脚本直接覆盖 `_case_state.json`。

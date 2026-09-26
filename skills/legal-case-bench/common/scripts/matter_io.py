@@ -836,6 +836,11 @@ def validate_matter(target: str | Path) -> list[str]:
         if errors:
             raise MatterInvalid("案件状态校验失败：\n- " + "\n- ".join(errors))
         warnings.extend(issue_warnings)
+        from casebench_v4 import validate_extensions
+
+        extension_errors = validate_extensions(state)
+        if extension_errors:
+            raise MatterInvalid("案件状态校验失败：\n- " + "\n- ".join(extension_errors))
     warnings.extend(sequence_warnings(state))
     return warnings
 

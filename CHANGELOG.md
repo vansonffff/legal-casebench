@@ -4,14 +4,58 @@
 > 已发布版本不可改写（skillhub 规则）；版本号的历史就是项目的历史。
 >
 > **Current stable Matter Foundation: 3.2.8**
+> **Current development route: CaseBench 4.0**
 
 ## 版本语义
 
 ```text
-3.2.x   Matter Foundation（Matter Contract v1 / State v4 / Registry v2 / Legacy Migration）
-3.3     Matter Module enrichment        （计划中）
-3.4     Authority Layer                 （计划中）
+3.2.x   Matter Foundation（Matter Contract v1 / State v4 / Registry v2 / Legacy Migration；当前稳定线）
+4.0     CaseBench Core + DSH 案件工作台（当前开发路线）
 ```
+
+原 3.3 Matter Module enrichment 与 3.4 Authority Layer 仅保留为历史路线记录，不再单独作为当前开发线。Authority 能力并入 4.0；Matter Module enrichment 暂缓，不阻塞 4.0。详见 [docs/CASEBENCH-4.0-PLAN.md](docs/CASEBENCH-4.0-PLAN.md)。
+
+## 4.0.0-rc.1 · 真实案件验证候选
+
+- 代码与 beta.2 相同；本版标注表示 Phase 10 真实案件验证通过：某真实系列 Matter（17 个 Proceeding、8 条已核验法条、1 项定稿）在真实 profile 浏览器实测展示正确，另有两条经真实对话沉淀的 Practice Note。
+- 新增 `probe-series.mjs` 系列案件 UI 回归探针（真实案件名经环境变量传入，不入库）。
+- 隔离环境完成 beta.2 → rc.1 插件升级与双次冷启动回归；desktop 端修复 Electron PATH 导致的 Python 查找失败后用户确认正常。
+- 系列详情全量铺开的折叠、系列 Matter 阶段显示、开庭事件真实覆盖为已知观察项，详见 [RC 验证记录](docs/CASEBENCH-4.0-RC1.md)。
+
+## 4.0.0-beta.2 · 工作流贯通与发布漂移修复
+
+- 修复 beta.1 发布滞留：共同源在打包后继续演进的经验复用能力（`prepare-reuse` 问题卡、`list --query` 检索、`promote --authority-ref`、final_artifacts 引用核验及对应门控文档）未进入注册包，四端安装与 DSH Bundle 均缺该能力；本版正式发布到四端与 Bundle。
+- 新增 `tests/test_release_drift.py` 漂移防线：版本已在 registry 存在时共同源必须与不可变包字节一致，开发下一版须先提升版本号；修复前该测试准确失败并列出漂移文件。
+- 完成计划 Phase 8 三场景端到端演练（隔离工作区 + DSH 安装副本复跑），含两次真实元典联网核验；行为层「仅提示」门控以负向对照验证，真实对话形态留待 RC。详见 [工作流演练记录](docs/CASEBENCH-4.0-beta.2-WORKFLOW.md)。
+- DSH 插件同步升至 4.0.0-beta.2（仅组装内容与版本变化，宿主/客户端代码未改，无需重启 Host）。255 项 Python 测试、3 项插件测试、validate/diff/doctor 全部通过；未推送公开仓库。
+
+## DSH Plugin 4.0.0-beta.1.2 · 中文界面
+
+- 角色、阶段、关联案件状态、成果类型、依据类型与核验状态使用中文标签，未知英文代码显示中文待确认提示。
+- 设置页、入口说明、经验复用提示及界面错误提示中文化，日期时间使用可读格式。
+- 真实浏览器检查六个案件详情、十八个成果/依据页面、两个经验详情和设置页，无英文系统术语残留或页面错误。Core 及案件数据不变。详见 [中文界面验收](docs/CASEBENCH-DSH-beta.1.2-ZH.md)。
+
+## DSH Plugin 4.0.0-beta.1.1 · 交互修复
+
+- 修复同一来源 Matter 的 Practice Note React key 冲突及两标签列表残留。
+- “打开”改用真实 DSH `useTabInfo()`、session 文件地址；程序阶段占位值显示为“阶段待确认”。
+- 真实浏览器完成四轮标签切换、Markdown 正文与重复打开、Word 原生 PDF 预览回归；已更新本地插件并重启 Host。Core / Skillhub 版本仍为 beta.1，真实办案数据未改。详见 [修复记录](docs/CASEBENCH-DSH-beta.1.1-FIX.md)。
+
+## 4.0.0-beta.1 · 本地预发布
+
+- CaseBench Core 在 State v4 中增量支持 Proceeding、Event、Authority Reference、Final Artifact；旧 Matter 保持只读兼容，不自动迁移。
+- 新增经用户确认后才可沉淀的 `_practice/` Authority 和 Practice Note，以及供各端共享的只读 JSON Read Model。
+- 新增 DSH Plugin：Cordis Host、Typert Remote、Settings 和右侧栏“案件工作台”；案件和办案经验可浏览，Matter 数据仍以 Core 工作区为准。
+- Skillhub 增加预发布版本解析，未指定版本时仍优先选择稳定版；只发布 CaseBench 的本地不可变包，并将四端受管安装更新到本版。DSH `web` Profile 通过正式 CLI 指向持久源码目录。
+- 252 项共同源回归测试、3 项插件测试、Skillhub doctor、真实 DSH Host/Client 和浏览器页面挂载均通过；6 个既有 Matter 完成只读读取。验收明细与剩余范围见 [docs/CASEBENCH-4.0-ACCEPTANCE.md](docs/CASEBENCH-4.0-ACCEPTANCE.md)。
+- 本版尚未达到 4.0 RC：真实案件的写入闭环、办案经验复用交互及系列案件情境仍需专项验收；没有推送公开仓库或发布 npm 包。
+
+## Unreleased · CaseBench 4.0 Phase 0 文档冻结
+
+- 将 3.2.8 标明为当前稳定基线，将 4.0 标明为当前开发路线。
+- 冻结 Matter Contract v1、State v4、Registry v2 的兼容边界；新增字段采用可选、增量演进，不要求批量迁移旧 Matter。
+- 新增 4.0 整体计划与 Phase 0 契约冻结文档。
+- 本条记录的是计划和契约文档变更，不表示 4.0 运行功能已经实现，也不构成版本发布。
 
 ## 3.2.8
 
@@ -30,7 +74,6 @@ Redact a real case name from shipped text
 - 教训：`evals/evals.json` 里的案件名靠镜像生成时的替换处理，
   但**散文与注释不能依赖替换**——这类内容必须从源头就不写。
 
-
 ## 3.2.7
 
 Role vocabulary corrected against a real case
@@ -46,7 +89,6 @@ Role vocabulary corrected against a real case
 - 教训记下：词汇表应先把已知的真实案件套一遍再冻结，否则"刻意的克制"
   会变成"表达不了"。
 
-
 ## 3.2.6
 
 Ship the license with the artifact
@@ -59,7 +101,6 @@ Ship the license with the artifact
   `manifest.json` 的 `includes` 增加 `skills/legal-case-bench/LICENSE → LICENSE`，
   安装后位于技能根目录，与公开仓的 `skills/legal-case-bench/LICENSE` 对应。
 - 仅新增一个文件，不改变任何行为。
-
 
 ## 3.2.5
 
@@ -85,7 +126,6 @@ Same cleanup, second sweep: user-visible strings and remaining references
 
 本版只改文案与文档，不改变任何行为；232 项测试全绿，六个正式案件仍全部 `valid`。
 
-
 ## 3.2.4
 
 Contract cleanup: current-state references + frozen role vocabulary
@@ -104,7 +144,7 @@ Contract cleanup: current-state references + frozen role vocabulary
   `role` 与 `type` 的约束在**写入侧硬校验**：
   `type: litigation` + `role: administrator` 这类错配会被 `matter.py validate` 拦下，
   自由写法（`admin` / `manager` / `管理人`）一律拒绝。
-  理由：下游的 Perspective Match 按 token 精确匹配，同义并存会让匹配**静默失效**。
+  理由：下游 DSH 的 Perspective Match 按 token 精确匹配，同义并存会让匹配**静默失效**。
 - **`matter.schema.json` 的 `role` 由自由字符串改为规范枚举**（14 个 token），
   并加测试锁定 schema 与 `matter_io.py` 常量逐字一致，防止两处各自漂移。
 - **明确测试命令的适用范围**。`matter-migration.md` 原先直接给出 `tests/…` 命令，
@@ -113,7 +153,6 @@ Contract cleanup: current-state references + frozen role vocabulary
 
 新增 6 项测试（`MatterVocabularyTest`）。六个正式案件收紧后仍全部 `valid`、0 warnings
 （它们的 `role: unknown` 是合法兜底值）。
-
 
 ## 3.2.3
 
@@ -134,7 +173,7 @@ Snapshot timestamp parsing made version-independent
 
 Snapshot timestamp naming correctness fix
 
-- 快照目录名的时间戳改用 **UTC**（`matter-v1-<UTC-timestamp>-<fingerprint>`）。
+- 快照目录名的时间戳改用 **UTC**（`matter-v1-2026-09-18T231833Z-<指纹>`）。
 - 修复 3.2.1 及更早的缺陷：`.replace("+", "-")` 把本机 `+0800` 写成 `-0800`，
   而 `-0800` 在 ISO-8601 里表示 UTC−8，**与真实偏移相差 16 小时**。
   这种"看起来完全合法、含义却相反"的 metadata 会误导读目录名判断快照时间的运维人员；

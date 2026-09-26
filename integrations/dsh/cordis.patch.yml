@@ -1,0 +1,6 @@
+- insert:
+    - id: legal-casebench
+      name: dsh-legal-casebench
+      config:
+        root: ~/Documents/My Legal-agents
+        python: python3.12

@@ -7,7 +7,7 @@
 Contract 的版本与 CaseBench 版本、`_case_state.json` 的 schema 版本、Registry 版本分别管理。当前约定是：
 
 ```text
-CaseBench 3.2.x（Matter Foundation；本文档对应 3.2.8）
+CaseBench 3.2.x（Matter Foundation；本文档对应 3.2.4）
 matter.yaml schema_version: 1
 _case_state.json schema_version: 4（新建 Matter 直接生成；存量旧案经 legacy migration 升级为 4）
 Registry schema_version: 2（matters[] 为权威、cases[] 为派生镜像；旧案条目经 migration 迁入 matters[]）
@@ -33,8 +33,7 @@ Registry v2
 3.2.x  Matter Foundation —— 当前稳定线（3.2.8）
        Matter Contract v1、Matter ID、State v4、Registry v2、Issue linkage、
        legacy migration（含完整恢复路径）
-3.3    Matter Module enrichment（房地产破产正式 Module）
-3.4    Authority Layer
+4.0    Proceeding、Authority Reference、Practice Library 与 DSH 案件工作台（开发中）
 ```
 
 ## Compatibility Contract（自 CaseBench 3.0 起冻结）
@@ -63,8 +62,8 @@ Registry 的权威性同样冻结：`matters[]` 是权威，`cases[]` 只是兼�
 `<root>/.migration/matter-v1-<stamp>-<案件指纹>/` 中的 `<stamp>`：
 
 ```text
-3.2.2 起  %Y-%m-%dT%H%M%SZ       例：<UTC-timestamp>      ← UTC
-3.2.1 及更早  <本地时间>-<本地偏移>  例：<local-timestamp>-<offset>
+3.2.2 起  %Y-%m-%dT%H%M%SZ       例：2026-09-18T231833Z     ← UTC
+3.2.1 及更早  <本地时间>-<本地偏移>  例：2026-09-19T071833-0800
 ```
 
 3.2.1 及更早的实现用 `.replace("+", "-")` 让文件名"安全"，把本机 `+0800` 写成了 `-0800`，
@@ -265,7 +264,7 @@ schema_version >= 4 但无 matter_id → 损坏的 Matter 状态，禁止按 leg
 事务化写入与按快照完整恢复。正式案件的 rollout 已完成。
 
 **尚未做**：`matter.py rename / set / bind / modules`、Artifact 的 `matter_id` / `issue_refs`
-关联、Matter Module、Matter-first workflow —— 按 3.3 / 3.4 分阶段实现。
+关联、Matter Module、Matter-first workflow 继续按 4.0 路线与实际授权分阶段实现；Matter Module enrichment 暂缓。
 
 ## 错误词汇
 

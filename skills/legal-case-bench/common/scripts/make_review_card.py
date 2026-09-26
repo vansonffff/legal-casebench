@@ -19,6 +19,7 @@
 import argparse
 import hashlib
 import json
+from pathlib import Path
 import os
 import sys
 from datetime import datetime
@@ -88,11 +89,7 @@ def main() -> None:
     ap.add_argument("--proposition", required=True, help="待证命题（A 类须为可证伪的命题句）")
     ap.add_argument("--materials", default="", help="材料定位路径，逗号分隔")
     ap.add_argument("--target", default="", help="被核对象路径（可选）")
-    ap.add_argument(
-        "--root",
-        default=os.path.join(os.path.expanduser("~"), "Documents", "My Legal-agents"),
-        help="产物根",
-    )
+    ap.add_argument("--root", default=str(Path.home() / "Documents" / "My Legal-agents"), help="产物根")
     ap.add_argument("--fields", default="", help="B 类：待核对字段清单，逗号分隔")
     a = ap.parse_args()
 

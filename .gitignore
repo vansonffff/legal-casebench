@@ -1,8 +1,11 @@
+# 依赖（插件安装时由 DSH 插件管理器安装；技能无构建步骤）
+node_modules/
 __pycache__/
-*.py[cod]
+*.pyc
+
+# macOS
 .DS_Store
-.env
-.env.*
-build/
-dist/
-.skillhub-release/
+
+# 打包/发布产物
+*.tgz
+npm-debug.log*

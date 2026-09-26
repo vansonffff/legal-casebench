@@ -58,10 +58,7 @@ def main() -> None:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--apply", action="store_true")
-    parser.add_argument(
-        "--path",
-        default=str(Path.home() / "Documents" / "My Legal-agents" / "bench.config.json"),
-    )
+    parser.add_argument("--path", default=str(Path.home() / "Documents" / "My Legal-agents" / "bench.config.json"))
     args = parser.parse_args()
     path = Path(args.path).resolve()
     original = load_json(path, {})

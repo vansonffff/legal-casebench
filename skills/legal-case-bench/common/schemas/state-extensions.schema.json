@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaseBench 4.0 optional State v4 extensions",
+  "type": "object",
+  "properties": {
+    "proceedings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["proceeding_id", "name"],
+        "properties": {
+          "proceeding_id": {"type": "string", "pattern": "^PROC-[0-9]{4,}$"},
+          "name": {"type": "string", "minLength": 1},
+          "case_number": {"type": ["string", "null"]},
+          "kind": {"type": "string"},
+          "stage": {"type": "string"},
+          "status": {"type": "string"},
+          "court": {"type": ["string", "null"]},
+          "parties": {"type": "array", "items": {"type": "object"}},
+          "events": {"type": "array", "items": {"type": "object", "required": ["event_id", "type", "at"],
+            "properties": {"event_id": {"type": "string", "pattern": "^EVT-[0-9]{4,}$"},
+              "type": {"type": "string"}, "at": {"type": "string", "format": "date-time"}}}}
+        }
+      }
+    },
+    "authority_refs": {
+      "type": "array",
+      "items": {"type": "object", "required": ["authority_ref_id", "type", "verification"],
+        "properties": {"authority_ref_id": {"type": "string", "pattern": "^AREF-[0-9]{4,}$"},
+          "type": {"enum": ["statute", "case"]}, "verification": {"type": "object"}}}
+    },
+    "final_artifacts": {
+      "type": "array",
+      "items": {"type": "object", "required": ["artifact_id", "title", "path", "sha256"],
+        "properties": {"artifact_id": {"type": "string", "pattern": "^FINAL-[0-9]{4,}$"},
+          "title": {"type": "string"}, "path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+    }
+  },
+  "additionalProperties": true
+}

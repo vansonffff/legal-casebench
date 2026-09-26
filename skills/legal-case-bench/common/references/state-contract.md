@@ -34,6 +34,7 @@ Matter 托管案件（有 matter.yaml）  → State v4（含 matter_id）
 - `case_tier` 保留兼容字段，权威来源为 `matter.yaml` 的 `governance.case_tier`。旧案保持 `null`，由用户选择后写入。
 - `sequences` 是编号高水位，防止删除后回收编号；缺失按 0 处理。
 - 未知顶层字段一律保留，不得在 round-trip 时删除。
+- 4.0 增量字段 `proceedings[]`、`authority_refs[]`、`final_artifacts[]` 和 `sequences.proceeding/event/authority_ref/final_artifact` 均可选；缺失不触发迁移。字段契约见 `proceedings.md`、`authority-references.md`、`final-artifacts.md`。
 
 ## Matter 身份预检
 
