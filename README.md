@@ -8,7 +8,7 @@
 支持 **WorkBuddy / myagents / Codex / DSH** 四个平台：同一套入口、同一套法律规则、
 同一套目录协议与状态脚本，**不因为换了平台或模型就降低办案强度与质量标准**。
 
-**当前版本：4.0.0-rc.2（候选发布）** · 稳定版 **3.2.8**（tag `v3.2.8`） · [版本记录](CHANGELOG.md)
+**当前版本：4.0.0-rc.7（候选发布）** · 稳定版 **3.2.8**（tag `v3.2.8`） · [版本记录](CHANGELOG.md)
 
 4.0 在 3.2.8 的 Matter Foundation 之上新增：
 
@@ -18,7 +18,17 @@
 - **Practice Library（办案经验库）**：经用户明确确认后沉淀的跨案办案认识与外部依据；
   AI 只有"发现权"，入库决定权在用户；历史经验进入新案件前必须重新联网核验；
 - **CaseBench Read Model**：统一只读 JSON 视图（`casebench_view.py`），供各端一致读取；
-- **DSH 案件工作台**：DSH 右侧栏的原生只读可视化入口（见下方"安装方式二"）。
+- **DSH 案件工作台**：DSH 右侧栏的原生可视化入口（含待办状态写回）（见下方"安装方式二"）。
+
+## 本次冻结（rc.7）
+
+- 会话案件跟随与身份/哈希保护的争点引用。
+- 事实核验状态/类别筛选，待办状态筛选及完成状态写回。
+- 统一页头、标题、计数和导航箭头；只保留右上角「重新读取」。
+- 打开文件后切回工作台，恢复原案件详情或二级菜单与展开状态；硬刷新或重启会清空 UI 记忆。
+- 修复上下文页头遮罩覆盖上方按钮底边。
+
+源码冻结验证：Python 280/280、插件 35/35。公开镜像含插件回归与独立待办测试，可在临时夹具中运行，不需真实案件数据。
 
 ---
 
@@ -170,14 +180,14 @@ rm -rf "$DEMO"
 
 ## 安装方式二：DSH 案件工作台插件（可选，右侧栏可视化）
 
-这是 CaseBench 在 DSH 里的**只读可视化入口**：右侧栏"案件工作台"浏览案件、
+这是 CaseBench 在 DSH 里的**可视化入口**：右侧栏"案件工作台"浏览案件、
 程序、开庭节点、最近成果、定稿、本案依据和办案经验。**它只是窗口**——
-案件数据仍以文件工作区为唯一事实源，插件不保存独立的案件数据库，也不修改案件数据。
+案件数据仍以文件工作区为唯一事实源，插件不保存独立的案件数据库。唯一写入口是待办完成/未完成状态，沿用 Core 的锁、哈希预检与身份校验；其余浏览字段只读。
 
 ### 前提
 
 - 已按"安装方式一"装好技能（Agent 会话用的是技能目录里的脚本）。
-- DSH 0.1.7+。
+- 使用与插件 Cordis 4 / Typert 0.1.7-rc.2 依赖兼容的 DSH 版本；升级前检查当前运行时的兼容提示。
 - Python 3.12（插件默认按命令名 `python3.12` 调用；找不到时见下方配置）。
 
 ### DSH 网页端（web profile）
@@ -322,6 +332,7 @@ python3 "$S/matter.py" migrate --case-dir "<案件>" --apply --actor dsh  # 正�
 | `final_artifact.py` | `register` / `list` 定稿登记 |
 | `practice.py` | `promote`（需 `--confirmed-by-user`）· `list` / `show` 检索 · `prepare-reuse` 复用问题卡 |
 | `casebench_view.py` | `workspace` / `matter` / `practice-list` / `practice-show` 只读 Read Model |
+| `pending.py` | `update-status --case-dir <目录> --item-id <编号> --status open/completed --actor dsh` |
 | `case_note.py` | `append` 追加可去重的案件笔记 |
 | `research_artifact.py` | `init` / `save-raw` / `record-source` / `finalize` 检索成果包 |
 | `analysis_artifact.py` | `init` / `finalize` / `check-stale` 专项分析成果 |
@@ -335,7 +346,7 @@ python3 "$S/matter.py" migrate --case-dir "<案件>" --apply --actor dsh  # 正�
 
 ```text
 3.2.x        Matter Foundation（Matter Contract v1 / State v4 / Registry v2 / Legacy Migration；稳定线）
-4.0.0-rc.2   CaseBench Core + 办案经验库 + DSH 案件工作台（候选发布）
+4.0.0-rc.7   CaseBench Core + 办案经验库 + DSH 案件工作台（候选发布）
 ```
 
 各版本含义见 [CHANGELOG.md](CHANGELOG.md)。
