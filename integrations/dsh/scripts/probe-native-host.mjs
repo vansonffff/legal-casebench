@@ -39,7 +39,7 @@ try {
   const service = ctx.get('casebench');
   assert.ok(service, 'CaseBench 服务未激活');
   const status = await service.remoteStatus();
-  assert.equal(status.coreVersion, '4.0.0-rc.4');
+  assert.equal(status.coreVersion, JSON.parse(await readFile(${JSON.stringify(resolve(packageRoot, 'package.json'))}, 'utf8')).version);
   const run = (...args) => {
     const r = spawnSync(${JSON.stringify(python)}, args, { encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr + r.stdout);

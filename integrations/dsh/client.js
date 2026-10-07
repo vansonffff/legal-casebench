@@ -1,9 +1,8 @@
 // CaseBench 右侧栏：读取 Core Read Model；唯一的写通道是待办状态写回（pending.py）。
 //
-// 视觉遵循已冻结的《面板设计规范 v1.0》（dsh-bankruptcy-teamwork/docs/面板设计规范.md，
-// CaseBench 侧差异见本仓库 docs/casebench-面板设计规范.md）：
-// 五级字级、PAD_X/BOX_PAD_X 两条留白基准线、0.5px 边框、QUIET/BUTTON 分工、
-// 吸顶页头用实测面板底色 + box-shadow 上延，禁止负 margin。
+// 视觉遵循 DSH/docs/DSH-PLUGIN-DESIGN-SYSTEM-2.0.md（Native Metrics，2026-10-03）：
+// 单列 Object List / Detail、语义 Surface、Content Rail 严格对齐、36px 标准控件、
+// Compact / Reading 双密度；面板内字重只用 400 / 500。
 window.__ModuleLoader__.load({
   id: 'dsh-legal-casebench',
   factory: (require) => {
@@ -46,92 +45,280 @@ window.__ModuleLoader__.load({
       result: { mode: 'strict', typeSymbol: `${PACKAGE}/${NAMESPACE}#${entry.method}:result`, create: codec },
     })) };
 
-    // ── 样式：只用有出处的 DSH 主题变量（冻结规范 §一/§二）──────────────────
-
-    // 字级：全部从两个有出处的产品字号派生（calc 跟随用户字号设置缩放）。
-    const FONT = 'var(--dsh-content-font-size-secondary, 13px)';
-    const NOTE_FONT = 'calc(var(--dsh-content-font-size-secondary, 13px) - 1px)';
-    const H3_FONT = 'var(--dsh-content-font-size, 14px)';
-    const H2_FONT = 'calc(var(--dsh-content-font-size, 14px) + 2px)';
-    const H1_FONT = 'calc(var(--dsh-content-font-size, 14px) + 4px)';
+    // ── 统一设计 Token（DSH 插件设计体系 2.0 · Native Metrics）────────────
+    // 字号层级只用五档：20 页面/对象标题、14 正文与节/对象标题（争点仅保留字重区别）、
+    // 13 面包屑（§15）、12 元信息（§3.1）；字重只用 400 / 500（§5.1），面板内不得出现 600。
+    const FONT = '14px';
+    const LH_BODY = '20px';
+    const SECONDARY_FONT = '13px';
+    const LH_SECONDARY = '18px';
+    const NOTE_FONT = '12px';
+    const LH_META = '18px';
+    const H3_FONT = '14px';
+    const H2_FONT = '20px';
+    const H1_FONT = '20px';
+    const LH_TITLE = '28px';
+    const LH_READING = '22px';
+    // 控件与行高：标准控件 36px、主操作 40px（§3.3 / §12）；导航行30px、对象行48px、案件行48px（§6.4）。
+    const CONTROL_HEIGHT = 36;
+    const PRIMARY_HEIGHT = 40;
+    const ROW_MIN = { nav: 30, case: 48, default: 48 };
     const TEXT_PRIMARY = 'var(--dsw-alias-label-primary, #17191c)';
     const TEXT_SECONDARY = 'var(--dsw-alias-label-secondary, #666b70)';
     const TEXT_TERTIARY = 'var(--dsw-alias-label-tertiary, #8a8f94)';
     const BORDER = 'var(--dsw-alias-border-l3, #0000001f)';
-    const HOVER = 'var(--dsw-alias-interactive-bg-hover, #2631480f)';
-    // 吸顶页头背景：面板底色没有公开变量，挂载时从 DOM 实测写进 --cb-pane-bg
-    // （bg-overlay 是浮层色，只作实测完成前的兜底；同破产面板 --bt-pane-bg 手法）。
+    const HOVER = 'var(--plugin-interactive-hover)';
     const PANE_BG = 'var(--cb-pane-bg, var(--dsw-alias-bg-overlay, #fff))';
-
-    const H1 = { fontSize: H1_FONT, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 };
-    const H2 = { fontSize: H2_FONT, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 };
-    const H3 = { fontSize: H3_FONT, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 };
-    const MUTED = { color: TEXT_SECONDARY, fontSize: FONT };
-    const TINY = { color: TEXT_TERTIARY, fontSize: NOTE_FONT };
-
-    /**
-     * 留白两条基准线（冻结规范 §三，禁止第三种水平数字）：
-     * ① 框外文字行（标题/备注/正文/清单行）→ 水平内边距 PAD_X；
-     *    根容器留白 6px + 4px → 左边统一落在 10px。
-     * ② 带边框组件（BOX/NOTICE_BOX）→ 水平内边距 BOX_PAD_X；框内行水平为 0。
-     * QUIET 水平内边距 0（文字标签落容器基准线）；BUTTON/INPUT 的内边距是热区。
-     */
-    const PAD_X = '4px';
-    const BOX_PAD_X = '8px';
-
-    /**
-     * 行样式。⚠ 不能无条件 `width: 100%`——会把页头标题挤成一字一行竖排；
-     * 列表行需要整宽时用 `display: 'block'` 显式要。
-     */
+    const SURFACE = 'var(--plugin-surface-subtle)';
+    const CONTROL = 'var(--plugin-surface-control)';
+    const H1 = { fontSize: H1_FONT, lineHeight: LH_TITLE, fontWeight: 500, color: TEXT_PRIMARY, margin: 0, overflowWrap: 'anywhere' };
+    const H2 = { fontSize: H2_FONT, lineHeight: LH_TITLE, fontWeight: 500, color: TEXT_PRIMARY, margin: 0, overflowWrap: 'anywhere' };
+    // H3 会内联进按钮（折叠段标题），所以这里不能带 margin：内联的 margin 简写会压掉
+    // CSS 的 Surface Bleed（行盒几何全在 PANEL_CSS 里，见下）。H3 的使用处都是 div/span，
+    // 本身没有默认外边距，去掉 margin 不影响其它位置。
+    const H3 = { fontSize: H3_FONT, lineHeight: '22px', fontWeight: 500, color: TEXT_PRIMARY };
+    const MUTED = { color: TEXT_SECONDARY, fontSize: NOTE_FONT, lineHeight: LH_META };
+    const TINY = { color: TEXT_TERTIARY, fontSize: NOTE_FONT, lineHeight: LH_META };
+    // 根容器承担页面 16/24px 留白；正文与标题一律落 Content Rail。
+    const PAD_X = '0px';
+    // 行盒的几何（水平内边距、外边距、圆角）全部由 PANEL_CSS 决定：内联写死就没法区分
+    // 裸行（P）与卡内行（P+16，底色铺满卡），实测踩过两次。
+    // 也没有 maxWidth:100%：Surface Bleed 行本来就比包含块左右各宽 8px（宽度由 CSS 的
+    // calc(100% + 16px) 给出），内联 max-width:100% 会把它夹回包含块宽度，右侧又短 8px
+    // （2026-10-04 实测：行盒停在 [轨左−8, 轨右−8]）。溢出由滚动区的 8px 内边距与
+    // overflow-x:hidden 承接，长内容由 overflowWrap:anywhere 折行。
     const ROW = {
-      display: 'flex', alignItems: 'center', gap: '6px', boxSizing: 'border-box',
-      maxWidth: '100%', padding: `5px ${PAD_X}`, borderRadius: '10px',
+      display: 'flex', alignItems: 'center', gap: '8px', boxSizing: 'border-box',
+      minWidth: 0, minHeight: ROW_MIN.default, paddingBlock: 8,
       border: 'none', background: 'transparent', color: TEXT_PRIMARY,
-      font: 'inherit', fontSize: FONT, textAlign: 'left', cursor: 'pointer',
+      font: 'inherit', fontSize: FONT, lineHeight: LH_BODY, textAlign: 'left', cursor: 'pointer', overflowWrap: 'anywhere',
     };
-    /** BUTTON：真正的动作才用（规范 §四）。 */
-    const BUTTON = { ...ROW, width: 'auto', border: `0.5px solid ${BORDER}`, padding: '4px 10px' };
-    /** QUIET：返回/刷新类功能性标签——无边框、三级文字色、水平 padding 0。 */
+    const BUTTON = { ...ROW, width: 'auto', minHeight: CONTROL_HEIGHT, borderRadius: '12px',
+      border: `1px solid ${BORDER}`, padding: '6px 12px' };
     const QUIET = {
-      border: 'none', background: 'transparent', color: TEXT_TERTIARY,
-      font: 'inherit', fontSize: FONT, padding: '3px 0', borderRadius: '6px',
-      cursor: 'pointer', textAlign: 'left',
+      border: 'none', background: 'transparent', color: TEXT_SECONDARY,
+      font: 'inherit', fontSize: FONT, lineHeight: LH_BODY, padding: '6px 0', borderRadius: '8px',
+      cursor: 'pointer', textAlign: 'left', minHeight: 32,
     };
+    // 面包屑是 13/20（§15）：必须内联下发——QUIET 已经把字号写在行内，CSS 规则压不过它
+    // （实测过：写了 `.cb-breadcrumb button{font-size:13px}` 仍是 14/22）。
+    const QUIET_BREADCRUMB = { ...QUIET, fontSize: SECONDARY_FONT, lineHeight: LH_SECONDARY };
+    // 次级操作（切换案件 / 恢复跟随会话）：比主信息小一档，避免和「当前案件」抢层级。
+    const QUIET_SMALL = { ...QUIET, fontSize: SECONDARY_FONT, lineHeight: LH_SECONDARY };
     const INPUT = {
-      width: '100%', boxSizing: 'border-box', border: `0.5px solid ${BORDER}`,
-      borderRadius: '8px', padding: '5px 10px', background: 'transparent',
-      color: TEXT_PRIMARY, font: 'inherit', fontSize: FONT,
+      width: '100%', boxSizing: 'border-box', minWidth: 0, minHeight: CONTROL_HEIGHT, height: CONTROL_HEIGHT,
+      border: `1px solid ${BORDER}`, borderRadius: '12px', padding: '6px 12px',
+      background: CONTROL, color: TEXT_PRIMARY, font: 'inherit', fontSize: FONT, lineHeight: LH_BODY,
     };
-    /** 筛选下拉：控件规格同 INPUT，但宽度随内容（不是通栏输入框）。 */
-    const SELECT = { ...INPUT, width: 'auto' };
-    /** 备注框：来源提示、警告这类备注性内容单独成框。 */
-    const NOTICE_BOX = { ...TINY, padding: `6px ${BOX_PAD_X}`, margin: '4px 0 8px',
-      borderRadius: '10px', border: `0.5px solid ${BORDER}` };
-    /** 备注行：通栏纯文字行，水平内边距 PAD_X。 */
-    const NOTE = { ...TINY, padding: `2px ${PAD_X}` };
-    const DIVIDER = { height: '0.5px', background: BORDER, margin: '6px 0' };
-
-    /**
-     * 吸顶页头：sticky top 0 + 实测面板底色；同色 box-shadow 向上延伸盖住容器顶部
-     * 透明条（只画背景、不影响布局与吸附位置）。禁止负 margin——sticky 吸附按
-     * margin 边判定，负边距会让元素提前停住、头顶漏出透明窗（破产面板实测坑）。
-     */
+    const SELECT = { ...INPUT, width: 'auto', maxWidth: '100%', flex: '1 1 120px', fontSize: SECONDARY_FONT, lineHeight: LH_SECONDARY };
+    const CONTENT = { background: SURFACE, borderRadius: '20px', padding: '12px var(--surface-padding-x)',
+      margin: '12px 0', minWidth: 0, overflowWrap: 'anywhere' };
+    // 案件详情里的分区（最近工作 / 关联案件 / 去向）不做灰色卡片：它们是连续的可点行，
+    // 按 §10.2 / §17 用裸行 + Hover Surface 表达；**全页只用一套行距**（行 40px + 8px，§7 的
+    // ObjectRow 间距），不再区分"组内紧、组间松"——用户 2026-10-03 要求「统一间距」。
+    const FLAT_BLOCK = { margin: 0 };
+    const NOTICE_BOX = { ...MUTED, padding: 12, margin: '12px 0',
+      borderRadius: '12px', border: `1px solid ${BORDER}`, overflowWrap: 'anywhere' };
+    const NOTE = { ...MUTED, padding: `4px ${PAD_X}`, overflowWrap: 'anywhere' };
+    const DIVIDER = { height: '1px', background: BORDER, margin: '12px 0' };
+    // 无上延阴影与负 margin：不透明背景、top:0，留白由头块自身承担。
     const HEAD_STICKY = { position: 'sticky', top: 0, zIndex: 2, background: PANE_BG,
-      boxShadow: `0 -10px 0 0 ${PANE_BG}` };
-
-    /** hover 用内联 style 表达不了，靠 onMouseEnter/Leave 落两个态。 */
+      paddingTop: 0, paddingBottom: 0, marginBottom: 8 };
+    const PANEL_STYLE = {
+      color: TEXT_PRIMARY, fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+      fontSize: FONT, lineHeight: LH_BODY, width: '100%', marginInline: 0,
+      padding: '0 var(--page-gutter) 24px', minWidth: 0, boxSizing: 'border-box',
+    };
+    // 样式限定在插件根节点，不改宿主组件；主题由实际面板背景推导并随宿主变化更新。
+    const PANEL_CSS = `
+      .cb-panel { --plugin-surface-subtle:#f7f7f7; --plugin-surface-control:#fff;
+        --plugin-interactive-hover:var(--dsw-alias-interactive-bg-hover,#0000000a);
+        --plugin-interactive-active:var(--dsw-alias-interactive-bg-active,#0000001a);
+        --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+        --page-gutter:16px; --surface-padding-x:16px; --leading-size:20px; --leading-gap:12px;
+        --radius-lg:20px; --radius-md:12px; --radius-sm:8px; --radius-pill:999px;
+      }
+      .cb-panel[data-cb-theme="dark"] { --plugin-surface-subtle:#252525; --plugin-surface-control:#181818;
+        --plugin-interactive-hover:var(--dsw-alias-interactive-bg-hover,#ffffff0a);
+        --plugin-interactive-active:var(--dsw-alias-interactive-bg-active,#ffffff24); }
+      /* hover / active 反馈只给行与按钮。标签（.cb-tab）和「当前案件」信息行必须**在源头就排除**：
+         它们自身那条 transparent!important 的选择器更短（.cb-panel .cb-tab:hover 只有 (0,3,0)），
+         和下面这两条通用规则（(0,4,1)）比优先级是输的——两条都 !important 时按优先级定胜负，
+         结果就是"只在鼠标放上去时冒灰底"（用户 2026-10-03 实测反馈）。
+         不要再靠"后面再补一条 transparent"来盖，只能在这里 :not() 掉。 */
+      .cb-panel button:not(:disabled):not(.cb-primary):not(.cb-tab):hover,
+      .cb-panel summary:not(.cb-current-summary):hover { background:var(--plugin-interactive-hover)!important; }
+      .cb-panel button:not(:disabled):not(.cb-primary):not(.cb-tab):active { background:var(--plugin-interactive-active)!important; }
+      .cb-panel :is(button,input,select,a,summary):focus-visible { outline:2px solid #1c80ff; outline-offset:3px; }
+      .cb-panel input[placeholder^="搜索"]:focus { outline:none; box-shadow:none; }
+      .cb-panel :is(button,input,select):disabled { opacity:.5; cursor:not-allowed; }
+      .cb-panel input::placeholder { color:var(--dsw-alias-label-secondary,#666b70); opacity:1; }
+      .cb-panel input[type="checkbox"] { accent-color:var(--dsw-alias-brand-primary,#1c80ff); }
+      .cb-panel [role="alert"] { color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-primary)); }
+      .cb-panel .cb-primary { background:var(--dsw-alias-label-primary,#17191c); color:var(--plugin-surface-control); border:none!important; }
+      .cb-panel .cb-primary:not(:disabled):hover { opacity:.85; }
+      .cb-panel .cb-primary:not(:disabled):active { opacity:.7; }
+      /* 标签任何状态都不铺灰底：不只 background，连 background-image、box-shadow 和伪元素一起按住
+         ——宿主样式可能用渐变/内阴影/::before 画选中块，只清 background 拦不住（用户两次反馈）。 */
+      .cb-panel .cb-tab, .cb-panel .cb-tab:hover, .cb-panel .cb-tab:active, .cb-panel .cb-tab:focus,
+      .cb-panel .cb-tab[aria-pressed="true"] { background:transparent!important; background-image:none!important; box-shadow:none!important; }
+      .cb-panel .cb-tab::before, .cb-panel .cb-tab::after { content:none!important; }
+      /* 标签 14/22；6px 纵向内边距 + 2px 下划线 = 36px，与标准控件同高（§3.3、§13.1）。 */
+      .cb-panel .cb-tab { font-size:14px; line-height:22px; min-height:36px; padding:6px 0; }
+      /* 裸行 Surface Bleed：背景向内容轨外扩 8px，文字仍落在页面轨 P（§4.4）。
+         **宽度必须显式给**：行是 <button>，表单控件的 auto 宽度是 fit-content、不会撑满包含块；
+         只写负外边距在宽度确定时又会过约束——内联 width:100% 会让右外边距被反算成 +8px，
+         只有左边外扩、右侧短 8px（2026-10-04 实测）。calc(100% + 16px) 与左右 −8px 配对才左右对称。 */
+      .cb-panel .cb-object-row { margin-block:4px; margin-inline:-8px; padding-inline:8px; border-radius:12px; line-height:22px;
+        width:calc(100% + 16px); }
+      /* 卡内行：背景铺满整张卡（外扩卡的水平内边距），文字仍落在卡内容轨 P+16；
+         卡片本身 overflow:hidden，让铺满的背景被卡的圆角裁掉，不露出直角。 */
+      .cb-panel .cb-content { overflow:hidden; }
+      .cb-panel .cb-content .cb-object-row { margin-inline:calc(var(--surface-padding-x) * -1);
+        padding-inline:var(--surface-padding-x); border-radius:0;
+        width:calc(100% + 2 * var(--surface-padding-x)); }
+      .cb-panel .cb-content .cb-object-row:focus-visible { outline-offset:-3px; }
+      /* 去向行与其它对象行同节距：全页只有一套行距（行 40px + 上下各 4px ⇒ 行间 8px）。
+         分隔线用 CSS border-top 会被行内 border:none（ROW）压掉，从来没生效过，故不再使用。 */
+      /* 当前案件摘要行：它是信息行，不是按钮条——hover 灰底在上面那条通用规则里用
+         :not(.cb-current-summary) 排除了（这里再补一条 transparent 是无效的：优先级比通用规则低）。 */
+      .cb-panel .cb-context-actions > summary .cb-arrow::after { content:'›'; }
+      .cb-panel .cb-context-actions[open] > summary .cb-arrow::after { content:'⌄'; }
+      /* 公共 Shell 不参与正文滚动；各子页共用同一条页面轨。 */
+      .cb-panel.cb-workspace { display:flex; flex-direction:column; overflow:hidden; padding-bottom:0; }
+      .cb-panel .cb-workspace-shell { flex:0 0 auto; min-width:0; background:var(--cb-pane-bg,var(--dsw-alias-bg-overlay,#fff)); }
+      .cb-panel .cb-scroll-body { flex:1 1 auto; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; margin-inline:-8px; padding:0 8px 24px; }
+      .cb-panel .cb-workspace-shell h3 { margin:0; padding:0; }
+      .cb-panel .cb-current-summary { margin:0; padding-inline:0; }
+      .cb-panel .cb-page-head { padding-inline:0; }
+      /* 同级入口之间加细线，绝对定位不改变行距；分割线落在正文轨。 */
+      .cb-panel .cb-matter-main > .cb-flat { position:relative; }
+      .cb-panel .cb-matter-main > .cb-flat + .cb-flat::before { content:''; position:absolute;
+        inset-inline:0; top:0; height:1px; background:var(--dsw-alias-border-l3,#0000001f); pointer-events:none; }
+      .cb-panel .cb-navigation-item { position:relative; }
+      .cb-panel .cb-matter-main .cb-navigation > .cb-navigation-item + .cb-navigation-item::before { content:''; position:absolute;
+        inset-inline:0; top:0; height:1px; background:var(--dsw-alias-border-l3,#0000001f); pointer-events:none; }
+      /* 案件详情分区入口使用48px热区，完整占满分割线之间的区域。
+         这些行没有负外边距（margin:0），宽度回到 100%，不参与 Surface Bleed 的 calc 外扩。 */
+      .cb-panel .cb-matter-main > .cb-flat > .cb-object-row,
+      .cb-panel .cb-matter-main .cb-navigation-item > .cb-object-row {
+        margin:0; padding:13px 0!important; min-height:48px!important; border-radius:0; width:100%; }
+      .cb-panel .cb-matter-main > .cb-flat + .cb-flat::before,
+      .cb-panel .cb-matter-main .cb-navigation > .cb-navigation-item + .cb-navigation-item::before { z-index:1; }
+      /* 事实／待办列表分割线（用户 2026-10-04）：两条相邻条目之间一条 1px 细线。
+         绝对定位的 ::before，不参与布局、不改变行高；不能用 border-top——行内 border:none（ROW）
+         会把它整条压掉（这个坑已经踩过一次）。
+         横向落页面轨（条目本身就在页面轨上），纵向取节距中点：0 + 24px → 24px → -12px。
+         争点行是可点卡片（hover 圆角底），不参与，故 :not(.cb-issue) 排除在外。
+         案件列表按用户同一轮的要求**不划线**（只留案件名，保持首页洁净），所以这里没有 data-kind="case" 的规则。 */
+      .cb-panel .cb-reading-list > .cb-reading-item { position:relative; }
+      .cb-panel .cb-reading-list > .cb-reading-item:not(.cb-issue) + .cb-reading-item:not(.cb-issue)::before {
+        content:''; position:absolute; inset-inline:0; top:-12px; height:1px;
+        background:var(--dsw-alias-border-l3,#0000001f); pointer-events:none; }
+      .cb-panel .cb-list { padding-top:0; }
+      .cb-panel .cb-reading-text { max-width:720px; margin-left:0; margin-right:auto; font-size:14px; line-height:22px; font-weight:400; }
+      .cb-panel .cb-reading-item { margin-block:0 24px; padding-block:0; }
+      .cb-panel .cb-issue { padding-block:0!important; }
+      .cb-panel .cb-issue .cb-object-title { font-size:14px; font-weight:500; line-height:22px; }
+      .cb-panel .cb-todo { display:grid; grid-template-columns:var(--leading-size) minmax(0,1fr); column-gap:var(--leading-gap); padding:0; margin-block:0 24px; }
+      .cb-panel .cb-todo-title { font-size:14px; line-height:22px; }
+      .cb-panel .cb-reading-meta { font-size:12px; line-height:18px; color:var(--dsw-alias-label-secondary,#666b70); margin-top:4px; }
+      /* 面包屑 13/20 由 QUIET_BREADCRUMB 内联下发：行内样式压过 CSS，写在这里等于没写。 */
+      .cb-panel .cb-breadcrumb { display:flex; align-items:center; gap:8px; flex-wrap:nowrap; min-height:32px; margin-bottom:8px; }
+      .cb-panel .cb-context-title { font-size:20px; line-height:28px; font-weight:500; margin:0; }
+      .cb-panel .cb-context-meta { margin-top:4px; margin-bottom:16px; }
+      .cb-panel .cb-page-head .cb-context-meta { margin-bottom:0; }
+      .cb-panel .cb-context-meta > div { padding:0!important; }
+      .cb-panel .cb-select { flex:1 1 120px; min-width:0; }
+      .cb-panel .cb-select-menu { position:fixed; z-index:100; box-sizing:border-box; overflow-y:auto;
+        padding:4px; border:1px solid var(--dsw-alias-border-l3,#0000001f); border-radius:12px;
+        background:var(--plugin-surface-control); color:var(--dsw-alias-label-primary,#17191c); }
+      .cb-panel .cb-select-menu button { display:block; width:100%; min-height:32px; border:0; padding:6px 8px;
+        border-radius:8px; background:transparent; color:inherit; font:inherit; font-size:13px; line-height:20px; text-align:left; }
+      .cb-panel .cb-select-menu button[aria-selected="true"] { font-weight:500; }
+      .cb-panel .cb-select-menu button[data-active="true"] { background:var(--plugin-interactive-hover); }
+      .cb-panel .cb-filter { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; align-items:center; padding-block:8px 0; height:44px; box-sizing:border-box; }
+      .cb-panel .cb-filter > :only-child { grid-column:1 / -1; }
+      .cb-panel .cb-filter-note { margin-left:auto; min-width:0; max-width:96px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .cb-panel .cb-pending-hit { display:flex; justify-content:center; align-items:flex-start; padding-top:3px; min-height:22px; cursor:pointer; }
+      .cb-panel .cb-pending-hit:has(input:disabled) { cursor:default; }
+      .cb-panel .cb-context-actions { margin-top:8px; }
+      /* 面板顶部的「当前案件」= 案件详情页的标题：名称 20/28/500（§5.1 子页标题 / §5.3 案件名），
+         前面 13/20 的标签说明这一行是什么，下面 12/18 是它的阶段与身份（原详情页那两行移到这里）。 */
+      .cb-panel .cb-context-actions > summary { display:flex; gap:12px; align-items:center; padding:4px 0; list-style:none; }
+      .cb-panel .cb-context-actions > summary::-webkit-details-marker { display:none; }
+      .cb-panel .cb-current { display:block; flex:1; min-width:0; min-height:48px; }
+      .cb-panel .cb-current-line { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .cb-panel .cb-current-label { font-size:13px; line-height:18px; font-weight:400; color:var(--dsw-alias-label-secondary,#666b70); }
+      .cb-panel .cb-current-name { font-size:20px; line-height:28px; font-weight:500; color:var(--dsw-alias-label-primary,#17191c); }
+      .cb-panel .cb-current-meta { display:block; margin-top:2px; font-size:12px; line-height:18px; font-weight:400;
+        color:var(--dsw-alias-label-secondary,#666b70); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .cb-panel .cb-context-actions[open] > summary { margin-bottom:8px; }
+      .cb-panel strong { font-size:14px; font-weight:500; line-height:22px; }
+      .cb-panel summary { cursor:pointer; border-radius:8px; }
+      .cb-panel .cb-technical { font-size:12px; line-height:18px; color:var(--dsw-alias-label-secondary); overflow-wrap:anywhere; }
+      .cb-panel .cb-reading-detail > .cb-content { padding:16px!important; }
+      .cb-panel .cb-content > .cb-content { background:transparent; border-radius:0; padding:12px 0; border-top:1px solid var(--dsw-alias-border-l3,#0000001f); }
+    `;
+    function PanelStyles() { return jsx('style', { children: PANEL_CSS }); }
+    const pageGutter = (width) => width < 520 ? 16 : 24;
+    function usePaneTheme(holder) {
+      useEffect(() => {
+        const root = holder.current;
+        if (!root || !globalThis.getComputedStyle) return;
+        const update = () => {
+          let node = root.parentElement;
+          while (node) {
+            const bg = globalThis.getComputedStyle(node).backgroundColor;
+            const channels = bg.match(/[\d.]+/g)?.map(Number);
+            if (channels?.length >= 3 && (channels.length < 4 || channels[3] === 1)) {
+              root.style.setProperty('--cb-pane-bg', bg);
+              const lightness = channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+              root.setAttribute('data-cb-theme', lightness < 128 ? 'dark' : 'light');
+              break;
+            }
+            node = node.parentElement;
+          }
+        };
+        update();
+        const layout = () => root.style.setProperty('--page-gutter', `${pageGutter(root.getBoundingClientRect().width)}px`);
+        layout();
+        const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(layout);
+        resize?.observe(root);
+        const observer = typeof MutationObserver === 'undefined' ? null : new MutationObserver(update);
+        // 只观察祖先主题属性，不监听插件自己写入的 style，避免循环触发。
+        for (let node = root.parentElement; node; node = node.parentElement)
+          observer?.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'] });
+        const media = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
+        media?.addEventListener?.('change', update);
+        return () => { resize?.disconnect(); observer?.disconnect(); media?.removeEventListener?.('change', update); };
+      }, []);
+    }
+    /**
+     * 连续对象保持裸行。当前案件只用字重（500）与 aria-current 标记，**不铺常驻灰底**——
+     * 用户 2026-10-03：选过案件再回列表时，那行的灰色强调会一直留着（面板顶部已写明当前案件）。
+     * 交互反馈只有 hover / active 两态。
+     *
+     * **宽度由 CSS 给，不能内联写死**（2026-10-04 修几何不对称时实测）：
+     * .cb-object-row 靠左右各 8px 的负外边距 + 8px 内边距做 Surface Bleed（背景向外 8px、
+     * 文字留在页面轨）。一旦内联写死宽度，左右外边距就都成了确定值，属于过约束，
+     * 浏览器按规则**忽略右外边距并反算它**——负值被改写成 +8px，
+     * 结果是行盒 = [页面轨左−8, 页面轨右−8]：只有左半边外扩，右侧反而短 8px；
+     * 卡内行更明显（左右各 −16px），右缘短 32px，悬停底色铺不满卡。
+     * 宽度统一写在 PANEL_CSS 里（裸行 calc(100% + 16px)、卡内行 calc(100% + 2 * surface-padding-x)）：
+     * <button> 的 auto 宽度是 fit-content，靠它撑不满包含块，负外边距也就无从生效。
+     */
+    function HoverRow({ onClick, disabled, children, strong, selected, kind, reading }) {
+      return jsx('button', { type: 'button', onClick, disabled,
+        className: `cb-object-row${kind === 'nav' ? ' cb-nav-row' : ''}${reading ? ' cb-reading-item cb-issue' : ''}`, 'data-kind': kind,
+        'aria-current': selected ? 'true' : undefined,
+        // 行高按对象类型内联下发：CSS 的 min-height 压不过内联样式，写在 CSS 里等于没写（实测）。
+        style: { ...ROW, display: 'block', minHeight: ROW_MIN[kind] || ROW_MIN.default,
+          fontWeight: strong || selected ? 500 : 400, background: 'transparent' }, children });
+    }
     function useHover() {
       const [hover, setHover] = useState(false);
       return [hover, { onMouseEnter: () => setHover(true), onMouseLeave: () => setHover(false) }];
-    }
-
-    /** 可交互清单行：整宽 block，hover 出底色。 */
-    function HoverRow({ onClick, disabled, children, strong }) {
-      const [hover, hoverEvents] = useHover();
-      return jsx('button', { type: 'button', onClick, disabled, ...hoverEvents,
-        style: { ...ROW, display: 'block', width: '100%', fontWeight: strong ? 600 : 400,
-          background: hover && !disabled ? HOVER : 'transparent', opacity: disabled ? 0.5 : 1 },
-        children });
     }
 
     function unwrap(response) {
@@ -139,6 +326,12 @@ window.__ModuleLoader__.load({
       if (response && response.ok === false) throw new Error(errorLabel(response.error?.message));
       if (response && typeof response === 'object') return response;
       throw new Error('未返回结果');
+    }
+    /** 只读视图是纯 JSON，深度相同即"没有新真相"；用于避免无谓重绘，切断重读回环。 */
+    function sameJson(left, right) {
+      if (left === right) return true;
+      try { return JSON.stringify(left ?? null) === JSON.stringify(right ?? null); }
+      catch { return false; }
     }
     function fileAddress(sessionId, path) {
       if (!sessionId) throw new Error('请先选择一个会话再打开文件。');
@@ -197,7 +390,70 @@ window.__ModuleLoader__.load({
     const roleLabel = (value, type) => value === 'restructuring-advisor' && type === 'non-litigation'
       ? '重组顾问' : valueLabel('role', value, '角色待确认');
     const statusLabel = (value) => valueLabel('status', value, '状态待确认');
+    /**
+     * 面板顶部「当前案件」下面的阶段与身份（从案件详情页移上来的那一行）。
+     * 只拼接**数据里真实存在**的字段：从工作区列表来的案件没有 role，就不会凭空写「角色待确认」；
+     * 阶段确实登记为 unknown 时保留「阶段待确认」——只显示一次，是有信息量的（与列表行的省略规则不同）。
+     */
+    /** 紧凑筛选菜单：保留单选语义，键盘箭头选择，Enter 确认，Escape 关闭。 */
+    let filterSequence = 0;
+    function FilterSelect({ label, value, options, onChange }) {
+      const [menu, setMenu] = useState(null);
+      const [active, setActive] = useState(0);
+      const trigger = useRef(null);
+      const listbox = useRef(null);
+      const [menuId] = useState(() => `cb-filter-${++filterSequence}`);
+      useEffect(() => { if (menu) listbox.current?.focus(); }, [menu]);
+      useEffect(() => { listbox.current?.querySelector(`[data-active="true"]`)?.scrollIntoView({ block: "nearest" }); }, [active]);
+      const current = Math.max(0, options.findIndex(([id]) => id === value));
+      useEffect(() => {
+        if (!menu) return;
+        const close = event => { if (!event.target?.closest?.('.cb-select-menu')) setMenu(null); };
+        window.addEventListener?.('scroll', close, true);
+        window.addEventListener?.('resize', close);
+        return () => { window.removeEventListener?.('scroll', close, true); window.removeEventListener?.('resize', close); };
+      }, [menu]);
+      function open() {
+        const rect = trigger.current.getBoundingClientRect();
+        const height = Math.min(options.length * 32 + 8, 240);
+        const below = window.innerHeight - rect.bottom;
+        setActive(current);
+        setMenu({ left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+          top: below >= height ? rect.bottom + 4 : Math.max(8, rect.top - height - 4), width: rect.width,
+          maxHeight: Math.min(height, window.innerHeight - 16) });
+      }
+      function pick(index) { onChange(options[index][0]); setMenu(null); trigger.current?.focus(); }
+      function key(event) {
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', ' ', 'Escape'].includes(event.key)) {
+          event.preventDefault();
+          if (event.key === 'Escape') { setMenu(null); trigger.current?.focus(); return; }
+          if (!menu) { open(); return; }
+          if (event.key === 'Enter' || event.key === ' ') { pick(active); return; }
+          setActive(index => event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+            : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length);
+        }
+      }
+      return jsxs('div', { className: 'cb-select', onKeyDown: key,
+        onBlur: event => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(null); }, children: [
+        jsxs('button', { ref: trigger, type: 'button', style: { ...SELECT, width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+          'aria-label': label, 'aria-haspopup': 'listbox', 'aria-expanded': Boolean(menu), 'aria-controls': menu ? menuId : undefined,
+          onClick: () => menu ? setMenu(null) : open(), children: [jsx('span', { children: options[current][1] }), jsx('span', { 'aria-hidden': true, children: '⌄' })] }),
+        menu && jsx('div', { ref: listbox, id: menuId, tabIndex: -1, className: 'cb-select-menu', role: 'listbox', 'aria-label': label, 'aria-activedescendant': `${menuId}-option-${active}`, style: menu,
+          children: options.map(([id, title], index) => jsx('button', { type: 'button', role: 'option', id: `${menuId}-option-${index}`,
+            'aria-selected': id === value, 'data-active': index === active, tabIndex: -1,
+            onMouseEnter: () => setActive(index), onClick: () => pick(index), children: title }, id)) }),
+      ] });
+    }
+
+    function matterMeta(matter) {
+      const parts = [];
+      if (matter?.stage) parts.push(stageLabel(matter.stage));
+      if (matter?.role) parts.push(roleLabel(matter.role, matter.type));
+      return parts.join(' · ');
+    }
     const kindLabel = (value) => valueLabel('kind', value, '成果类型待确认');
+    /** 案件类型（matter.type）：与成果类型共用 kind 映射（诉讼/破产/非诉/其他），但缺失时的提示语不同。 */
+    const caseTypeLabel = (value) => valueLabel('kind', value, '案件类型待确认');
     const authorityLabel = (value) => valueLabel('authority', value, '依据类型待确认');
     /** 争点状态：中文自由值原样显示，未知英文值退到"状态待确认"，不外泄英文。 */
     const issueStatusLabel = (value) => valueLabel('issue', value, '状态待确认');
@@ -275,32 +531,33 @@ window.__ModuleLoader__.load({
     function empty(text) { return jsx('div', { style: { ...TINY, padding: `12px ${PAD_X}` }, children: text }); }
     function heading(text) { return jsx('h3', { style: { ...H2, margin: `4px ${PAD_X} 12px` }, children: text }); }
     function labelled(label, value) {
-      if (!value) return null;
-      return jsxs('div', { style: { marginBottom: 9, padding: `0 ${PAD_X}` }, children: [caption(label), jsx('div', { children: String(value) })] });
+      if (value === null || value === undefined || value === '') return null;
+      return jsxs('div', { style: { marginBottom: 12, padding: `0 ${PAD_X}` }, children: [caption(label), jsx('div', { children: String(value) })] });
     }
     function guarded(View) {
       return class Boundary extends Component {
         constructor(props) { super(props); this.state = { error: null }; }
         static getDerivedStateFromError(error) { return { error }; }
         render() {
-          return this.state.error ? jsx('div', { style: { padding: 14, ...TINY },
+          return this.state.error ? jsx('div', { style: { padding: 16, ...TINY },
             children: errorLabel(this.state.error, '案件工作台显示失败，请重新读取或刷新页面。') }) : jsx(View, this.props);
         }
       };
     }
 
     /**
-     * 子页吸顶页头：QUIET 返回（左）+ H2 标题 + 可选右侧动作。整页下滑时页头吸附在
-     * 滚动区顶端；底色用实测面板底色 + 同色 box-shadow 上延遮滚动穿透，禁止负 margin。
+     * Detail：返回与对象标题分行，长案件名在窄栏仍保留完整阅读宽度。
+     * 案件详情页不再传 title——案件名与阶段身份都由面板顶部的「当前案件」一行承担，
+     * 页面里不再重复一次（用户 2026-10-03：上下两处都写案件名，重复了）。
      */
     function PageHead({ onBack, backLabel, title, extra, children }) {
-      return jsxs('div', { style: { ...HEAD_STICKY, paddingBottom: 6 }, children: [
-        jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${PAD_X} 4px` }, children: [
-          onBack && jsx('button', { type: 'button', style: QUIET, onClick: onBack, children: `← ${backLabel || '返回'}` }),
-          jsx('span', { style: { flex: 1, minWidth: 0, ...H2 }, children: title }),
+      return jsxs('div', { className: 'cb-page-head', style: HEAD_STICKY, children: [
+        jsxs('div', { className: 'cb-breadcrumb', children: [
+          onBack && jsx('button', { type: 'button', style: QUIET_BREADCRUMB, onClick: onBack, children: `← ${backLabel || '返回'}` }),
           extra || null,
         ] }),
-        children || null,
+        title && jsx('h2', { style: H2, children: title }),
+        children && jsx('div', { className: 'cb-context-meta', children }),
       ] });
     }
 
@@ -321,29 +578,33 @@ window.__ModuleLoader__.load({
 
     function Collapsible({ title, open, onToggle, children }) {
       const [hover, hoverEvents] = useHover();
-      return jsxs('div', { children: [
+      // 裸行分区，不套灰色卡片：标题行走 Surface Bleed（文字在页面轨 P，底色向外 8px），
+      // 展开后的条目与它同轨——层级由字重与箭头表达，不靠卡片底色和缩进。
+      return jsxs('section', { className: 'cb-flat', style: FLAT_BLOCK, children: [
         jsxs('button', { type: 'button', 'aria-expanded': open, onClick: onToggle, ...hoverEvents,
-          style: { ...ROW, display: 'flex', width: '100%', ...H3, background: hover ? HOVER : 'transparent' },
+          className: 'cb-object-row',
+          style: { ...ROW, minHeight: 48, paddingBlock: 0, display: 'flex', width: '100%', ...H3, background: hover ? HOVER : 'transparent' },
           children: [
             jsx('span', { style: { flex: 1, minWidth: 0 }, children: title }),
             jsx(ArrowSlot, { open }),
           ] }),
+        // 展开的条目不再额外加内边距：全页只有一套行距（行间 4px），展开前后节距一致。
         open && jsx('div', { children }),
       ] });
     }
 
     /**
      * 去向行：标题（含计数）在左，› 在右缘箭头槽——与折叠段箭头同一列。
-     * 与 Collapsible 段标题同层级：字号统一用 H3 字级（冻结规范 §一），
+     * 与 Collapsible 段标题同层级：字号统一用 H3 字级（统一设计体系 §4），
      * 只靠字重区分重要性（用户 2026-10-03 截图指出）。
      */
     function NavRow({ onClick, strong, children }) {
-      return jsx(HoverRow, { onClick, children: jsxs('span', {
+      return jsx('div', { className: 'cb-navigation-item', children: jsx(HoverRow, { onClick, kind: 'nav', children: jsxs('span', {
         style: { display: 'flex', alignItems: 'center', width: '100%',
-          fontSize: H3_FONT, fontWeight: strong ? 600 : 400 }, children: [
+          fontSize: H3_FONT, fontWeight: strong ? 500 : 400 }, children: [
         jsx('span', { style: { flex: 1, minWidth: 0 }, children }),
         jsx(ArrowSlot, {}),
-      ] }) });
+      ] }) }) });
     }
 
     /** 段正文：左右留白已由行样式统一提供，这里不再重复加，保证与段标题左对齐。 */
@@ -354,10 +615,12 @@ window.__ModuleLoader__.load({
      * （按钮独占一行太占空间，且与文字不对齐——用户截图指出）。无 path 保持只读行。
      */
     function ArtifactRow({ title, meta, note, path, onOpen }) {
+      // 展开后的文件列表是**条目**，不是节标题：字重 400；只有「最近工作 · 18」这类分区标题才是 500
+      //（用户 2026-10-03：最近工作等展开后的文件列表不要用加粗字号）。
       const inner = jsxs('span', { children: [
-        jsx('span', { style: { display: 'block' }, children: title }),
-        meta && jsx('span', { style: { ...MUTED, display: 'block', marginTop: 2 }, children: meta }),
-        note && jsx('span', { style: { ...TINY, display: 'block', marginTop: 2 }, children: note }),
+        jsx('span', { style: { ...H3, fontWeight: 400, display: 'block' }, children: title }),
+        meta && jsx('span', { style: { ...MUTED, display: 'block', marginTop: 4 }, children: meta }),
+        note && jsx('span', { style: { ...TINY, display: 'block', marginTop: 4 }, children: note }),
       ] });
       if (!path) return jsx('div', { style: { ...ROW, display: 'block', cursor: 'default' }, children: inner });
       return jsx(HoverRow, { onClick: () => onOpen(path), children: inner });
@@ -384,7 +647,7 @@ window.__ModuleLoader__.load({
           title: page === 'final' ? '已定稿' : page === 'statute' ? '本案法条' : '参考案例' }),
         ...(sublist || []).map((item, index) => jsx(ArtifactRow, {
           title: item.title || item.case_number || item.path || '未命名',
-          meta: item.locator || item.proposition || item.path || '',
+          meta: item.locator || item.proposition || '',
           note: item.verification?.status ? `核验：${verificationLabel(item.verification.status)}` : null,
           path: item.path, onOpen: openFile,
         }, item.artifact_id || item.authority_ref_id || index)),
@@ -392,15 +655,14 @@ window.__ModuleLoader__.load({
       ] });
       const recent = data.recent_artifacts || [];
       const visibleRecent = showAllRecent ? recent : recent.slice(0, 5);
-      return jsxs('div', { children: [
-        jsxs(PageHead, { onBack, backLabel: '返回', title: matter.name || '案件', children: [
-          jsx('div', { style: NOTE, children: `${stageLabel(matter.stage)} · ${roleLabel(matter.role, matter.type)}` }),
-        ] }),
-        procedures.length === 1 && jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [
+      return jsxs('div', { className: 'cb-matter-main', children: [
+        // 标题与阶段身份上移到面板顶部（WorkspaceShell 的「当前案件」一行），这里只留返回。
+        jsx(PageHead, { onBack, backLabel: '返回' }),
+        procedures.length === 1 && jsxs('section', { className: 'cb-content', style: CONTENT, children: [
           labelled('案件', procedures[0].name), labelled('案号', procedures[0].case_number),
           ...(procedures[0].parties || []).map((party, index) => labelled(roleLabel(party.role, matter.type), party.name)),
         ] }),
-        data.next_event && jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [caption('下次开庭或程序节点'),
+        data.next_event && jsxs('section', { className: 'cb-content', style: CONTENT, children: [caption('下次开庭或程序节点'),
           jsx('div', { style: { padding: `0 ${PAD_X}` }, children: dateLabel(data.next_event.at) }),
           data.next_event.location && jsx('div', { style: NOTE, children: data.next_event.location }),
         ] }),
@@ -422,12 +684,16 @@ window.__ModuleLoader__.load({
           children: jsx('div', { style: sectionBody, children: procedures.map((item) => jsxs('div', {
             style: { ...ROW, display: 'block', cursor: 'default' }, children: [
             jsx('span', { style: { display: 'block' }, children: item.name }),
-            jsx('span', { style: { ...MUTED, display: 'block', marginTop: 2 },
+            jsx('span', { style: { ...MUTED, display: 'block', marginTop: 4 },
               children: `${item.case_number || '案号待核'} · ${stageLabel(item.stage)} · ${statusLabel(item.status)}` }),
           ] }, item.proceeding_id)) }) }),
-        // 去向组：四条共用 NavRow（标题在左、› 在右缘箭头槽，与折叠段箭头同一列）。
-        jsxs('section', { children: [
-          onContext && jsx(NavRow, { strong: true, onClick: onContext, children: '案件上下文' }),
+        // 去向分两块（都不套卡片）：案件上下文是"另一个视图"，单独一块；
+        // 下面三条是同类子页去向，合为一组，组内以分隔线相连。
+        // 各行共用 NavRow（标题在左、› 在右缘箭头槽，与折叠段箭头同一列）。
+        onContext && jsxs('section', { className: 'cb-flat cb-navigation', style: FLAT_BLOCK, children: [
+          jsx(NavRow, { strong: true, onClick: onContext, children: '案件上下文' }),
+        ] }),
+        jsxs('section', { className: 'cb-flat cb-navigation', style: FLAT_BLOCK, children: [
           jsx(NavRow, { onClick: () => setPage('final'), children: `已定稿 · ${data.final_artifact_count || 0}` }),
           jsx(NavRow, { onClick: () => setPage('statute'),
             children: `本案法条 · ${(data.authority_refs || []).filter((x) => x.type === 'statute').length}` }),
@@ -442,7 +708,7 @@ window.__ModuleLoader__.load({
     function PracticeDetail({ data, onBack, onSource }) {
       const meta = data.metadata || {};
       const [selectedId, setSelectedId] = useState(null);
-      const selected = (context.issues || []).find((issue) => issue.issue_id === selectedId) || null;
+      const selected = selectedId === null ? null : (data.authorities || []).find((item) => item.id === selectedId) || null;
       if (selected) return jsxs('div', { children: [
         jsx(PageHead, { onBack: () => setSelectedId(null), backLabel: '办案经验',
           title: selected.title || selected.case_number || '关联依据' }),
@@ -457,17 +723,17 @@ window.__ModuleLoader__.load({
       ] });
       return jsxs('div', { children: [
         jsx(PageHead, { onBack, backLabel: '办案经验', title: meta.title || '办案经验' }),
-        jsx('div', { style: { padding: `0 ${PAD_X}`, marginBottom: 6 }, children: jsx('button', {
+        jsx('div', { style: { padding: `0 ${PAD_X}`, marginBottom: 8 }, children: jsx('button', {
           type: 'button', style: BUTTON, onClick: onSource,
           children: `来源：${meta.origin?.matter_name || '待核'}` }) }),
         caption(`关联争点：${(meta.origin?.issue_refs || []).length} 项 · 关联成果：${(meta.origin?.artifact_refs || []).length} 项`),
-        jsx('div', { style: { whiteSpace: 'pre-wrap', lineHeight: 1.75, padding: `8px ${PAD_X}` }, children: data.body || '' }),
-        jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [
-          jsx('div', { style: { ...H3, padding: `0 ${PAD_X} 6px` }, children: '关联依据' }),
-          ...(data.authorities || []).map((item) => jsx(HoverRow, { onClick: () => setSelected(item),
+        jsx('div', { className: 'cb-content', style: CONTENT, children: jsx('div', { className: 'cb-reading-text', style: { whiteSpace: 'pre-wrap' }, children: data.body || '' }) }),
+        jsxs('section', { className: 'cb-content', style: CONTENT, children: [
+          jsx('div', { style: { ...H3, padding: `0 ${PAD_X} 8px` }, children: '关联依据' }),
+          ...(data.authorities || []).map((item) => jsx(HoverRow, { onClick: () => setSelectedId(item.id),
             children: jsxs('span', { children: [
               jsx('span', { style: { display: 'block' }, children: item.title || item.case_number || '关联依据' }),
-              jsx('span', { style: { ...MUTED, display: 'block', marginTop: 2 }, children: item.locator || item.court || '' }),
+              jsx('span', { style: { ...MUTED, display: 'block', marginTop: 4 }, children: item.locator || item.court || '' }),
             ] }) }, item.id)),
           // 实测两条真实经验都没有关联依据：原来只剩一个空标题，看不出是"没有"还是"没渲染出来"。
           !(data.authorities || []).length && empty('暂无关联依据')] }),
@@ -512,41 +778,26 @@ window.__ModuleLoader__.load({
       })];
     }
 
-    function Field({ label, value }) {
-      if (value === null || value === undefined || value === '') return null;
-      const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      return jsxs('div', { style: { marginBottom: 6, padding: `0 ${PAD_X}` }, children: [
-        jsx('span', { style: TINY, children: `${label}：` }), jsx('span', { children: text }) ] });
-    }
-
-    function ListField({ label, values }) {
-      const items = (values || []).map((item) => (typeof item === 'object' ? item.text || item.summary || item.title || JSON.stringify(item) : String(item)))
-        .filter((item) => item);
-      if (!items.length) return null;
-      return jsxs('div', { style: { marginBottom: 6, padding: `0 ${PAD_X}` }, children: [
-        jsx('div', { style: TINY, children: label }),
-        jsx('ul', { style: { margin: '4px 0 0', paddingLeft: 18 }, children: items.map((text, index) => jsx('li', { children: text }, index)) }) ] });
-    }
-
     /** 待办状态复选框：面板唯一的写入口。勾选态由 isSettledPending 决定，与加粗、计数同口径。 */
     function PendingCheck({ item, busy, onTogglePending }) {
       const done = isSettledPending(item.status);
-      return jsx('input', { type: 'checkbox', checked: done, disabled: busy === item.item_id || !item.item_id,
+      return jsx('input', { type: 'checkbox', checked: done, disabled: Boolean(busy) || !item.item_id,
         'aria-label': done ? `把 ${item.item_id || '该待办'} 标记为未完成` : `把 ${item.item_id || '该待办'} 标记为已完成`,
         title: done ? '标记为未完成' : '标记为已完成',
         onChange: (event) => onTogglePending(item, event.target.checked),
-        style: { margin: '4px 6px 0 0', flexShrink: 0 } });
+        style: { margin: 0, width: 16, height: 16, boxSizing: 'border-box' } });
     }
 
-    /** 待办行：复选框 + 标题 + 小字元信息；已完成的标题加粗（"已了结"的记号）。 */
+    /** 待办行：复选框 + 标题 + 小字元信息；已完成用 500、未完成 400（2.0 只有 400/500 两档）。 */
     function PendingRow({ item, busy, onTogglePending, showIssueRef }) {
-      return jsxs('div', { style: { ...ROW, display: 'flex', alignItems: 'flex-start', cursor: 'default' }, children: [
-        jsx(PendingCheck, { item, busy, onTogglePending }),
-        jsxs('span', { style: { minWidth: 0 }, children: [
-          jsx('span', { style: { display: 'block', fontWeight: isSettledPending(item.status) ? 600 : 400 },
+      return jsxs('div', { className: 'cb-todo cb-reading-item', children: [
+        jsx('label', { className: 'cb-pending-hit', children: jsx(PendingCheck, { item, busy, onTogglePending }) }),
+        jsxs('div', { style: { minWidth: 0 }, children: [
+          jsx('div', { className: 'cb-todo-title cb-reading-text', style: { fontWeight: isSettledPending(item.status) ? 500 : 400 },
             children: item.title || '内容待核' }),
-          jsx('span', { style: { ...TINY, display: 'block', marginTop: 2 },
+          jsx('div', { className: 'cb-reading-meta',
             children: `${item.item_id || '编号待补'} · ${pendingStatusLabel(item.status)}${item.due ? ` · 截止 ${item.due}` : ''}${showIssueRef && item.issue_ref ? ` · 关联争点 ${item.issue_ref}` : ''}` }),
+          busy === item.item_id && jsx('div', { role: 'status', style: TINY, children: '正在更新…' }),
         ] }),
       ] });
     }
@@ -554,27 +805,30 @@ window.__ModuleLoader__.load({
     function IssueDetail({ context, issue, onQuote, quoteNotice, busyPending, onTogglePending }) {
       const facts = (context.facts || []).filter((fact) => (issue.fact_refs || []).includes(fact.fact_id));
       const pending = (context.pending_items || []).filter((item) => item.issue_ref === issue.issue_id);
-      return jsxs('div', { children: [
-        jsx('div', { style: { ...H3, padding: `0 ${PAD_X}`, marginBottom: 4 }, children: issue.title || '争点标题待确认' }),
+      return jsxs('div', { className: 'cb-reading-detail', children: [
+        // 争点标题按 §19.2 的 15/24/500：它不撑成页面标题，但要比正文高半档。
+        jsx('div', { style: { ...H3, fontSize: 15, lineHeight: LH_READING, padding: `0 ${PAD_X}`, marginBottom: 4 }, children: issue.title || '争点标题待确认' }),
         jsx('div', { style: NOTE, children: `${issue.issue_id}${issue.display_id ? ` · 展示编号 ${issue.display_id}` : ''} · 状态：${issueStatusLabel(issue.status)}` }),
-        jsx('div', { style: { padding: `6px ${PAD_X}` }, children: [
-          jsx('button', { type: 'button', style: BUTTON, onClick: () => onQuote(issue), children: '引用到对话' }),
+        jsx('div', { style: { padding: `8px ${PAD_X}` }, children: [
+          // 每个视图只有一个明显主操作：它是 40px，其它动作保持 36px（§12.2）。
+          jsx('button', { type: 'button', className: 'cb-primary', style: { ...BUTTON, minHeight: PRIMARY_HEIGHT },
+            onClick: () => onQuote(issue), children: '引用到对话' }),
         ] }),
         quoteNotice && jsx('div', { role: 'status', style: { ...NOTE, marginBottom: 8 }, children: quoteNotice }),
         // 立场、反对意见、证据缺口、下一步按用户要求整块删去；有内容时改由「办案备注」承载。
         // 办案备注是独立字段，不与立场混同：实测真实案件的办案记录写在这里，而 current_position 为空。
-        issue.note && jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [
+        issue.note && jsxs('section', { className: 'cb-content', style: CONTENT, children: [
           jsx('div', { style: NOTE, children: '办案备注' }),
-          jsx('div', { style: { whiteSpace: 'pre-wrap', lineHeight: 1.7, padding: `0 ${PAD_X}` }, children: issue.note }),
+          jsx('div', { className: 'cb-reading-text', style: { whiteSpace: 'pre-wrap', padding: `0 ${PAD_X}` }, children: issue.note }),
         ] }),
-        jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [
+        jsxs('section', { className: 'cb-content', style: CONTENT, children: [
           jsx('div', { style: NOTE, children: `关联事实 · ${facts.length}` }),
-          facts.length ? facts.map((fact) => jsxs('div', { style: { ...ROW, display: 'block', cursor: 'default' }, children: [
-            jsx('span', { style: { display: 'block' }, children: fact.text || '内容待核' }),
-            jsx('span', { style: { ...TINY, display: 'block', marginTop: 2 }, title: `原编码：${fact.kind || '—'} / ${fact.material_grade || '—'}`,
+          facts.length ? facts.map((fact) => jsxs('div', { className: 'cb-reading-item', children: [
+            jsx('span', { className: 'cb-reading-text', style: { display: 'block' }, children: fact.text || '内容待核' }),
+            jsx('span', { className: 'cb-reading-meta', style: { display: 'block' }, title: `原编码：${fact.kind || '—'} / ${fact.material_grade || '—'}`,
               children: `${fact.fact_id || '编号待补'} · ${factKindLabel(fact.kind)} · 材料性质：${materialGradeLabel(fact.material_grade)} · ${factVerificationLabel(fact.verification)}` }),
           ] }, fact.fact_id)) : empty('本案未登记与该争点关联的事实')] }),
-        jsxs('section', { style: { padding: '12px 0', borderTop: `0.5px solid ${BORDER}` }, children: [
+        jsxs('section', { className: 'cb-content', style: CONTENT, children: [
           jsx('div', { style: NOTE, children: `关联待办 · ${pending.length}` }),
           pending.length ? pending.map((item) => jsx(PendingRow, { item, busy: busyPending,
             onTogglePending, showIssueRef: false }, item.item_id)) : empty('无关联待办')] }),
@@ -582,18 +836,19 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 案件上下文：宽栏时两栏（左列表｜右详情），窄栏时单列。
-     * 页头（导航行 + 案件名 + 读取时间 + 小标签 + 筛选行）合并为一个吸顶块：
+     * 案件上下文：单列列表与争点详情。
+     * 页头（导航行 + 小标签 + 筛选行）合并为一个吸顶块：
      * 往下滑条目时"当前在看哪一案、哪一类、筛了什么"始终可见；一个吸顶块也避免了
      * 两个 sticky 叠同一个 top 互相遮挡的问题。
      */
     function ContextDetail({ context, sub, onSub, onQuote, onBack, onOpenMatter,
-      quoteNotice, wide, busyPending, onTogglePending }) {
+      quoteNotice, busyPending, onTogglePending }) {
       const [selectedId, setSelectedId] = useState(null);
       // 筛选状态是本组件的本地态：组件按 matter.id 挂了 key，切案件自动重置；
       // 切小标签时在 onClick 里显式重置。
       const [factFilter, setFactFilter] = useState({ verification: 'all', kind: 'all' });
       const [pendingFilter, setPendingFilter] = useState('all');
+      const [issueQuery, setIssueQuery] = useState('');
       const selected = (context.issues || []).find((issue) => issue.issue_id === selectedId) || null;
       const counts = context.counts || {};
       const allFacts = context.facts || [];
@@ -606,7 +861,7 @@ window.__ModuleLoader__.load({
         ? facts.map((fact) => ({ key: fact.fact_id, title: fact.text || '内容待核',
             meta: `${fact.fact_id || '编号待补'} · ${factKindLabel(fact.kind)} · 材料性质：${materialGradeLabel(fact.material_grade)} · ${factVerificationLabel(fact.verification)}` }))
         : sub === 'issues'
-          ? (context.issues || []).map((issue) => ({ key: issue.issue_id, title: issue.title || '标题待确认',
+          ? (context.issues || []).filter(issue => [issue.title, issue.issue_id].filter(Boolean).join(' ').toLowerCase().includes(issueQuery.trim().toLowerCase())).map((issue) => ({ key: issue.issue_id, title: issue.title || '标题待确认',
               meta: `${issue.issue_id || '身份待确认'} · 状态：${issueStatusLabel(issue.status)} · 关联事实 ${(issue.fact_refs || []).length}`,
               issue }))
           : pending.map((item) => ({ key: item.item_id, item }));
@@ -617,94 +872,141 @@ window.__ModuleLoader__.load({
       const filterNote = sub === 'facts' && (factFilter.verification !== 'all' || factFilter.kind !== 'all')
         ? `显示 ${facts.length} / 共 ${allFacts.length} 条`
         : sub === 'pending' && pendingFilter !== 'all' ? `显示 ${pending.length} / 共 ${allPending.length} 条` : '';
-      const head = jsxs('div', { style: HEAD_STICKY, children: [
+      const head = jsxs('div', { style: { ...HEAD_STICKY, marginBottom: 12 }, children: [
         // 两个出口各司其职、且都真实可达：回案件列表 / 打开该案件的详情视图。
         // 文案不能由"有没有详情可回"决定：进入上下文时 detail 必为 null（choose 与 goContext 都清），
         // 那样两个入口会退化成一个——只剩回列表，案件详情再也回不去（已实测到过）。
         // 「重新读取」全面板只有标题行右上角那一个：它在上下文页同样重读上下文（refresh('context')），
         // 这里不再放第二个（用户要求，2026-10-03）。
-        jsxs('div', { style: { display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap',
-          padding: `2px ${PAD_X} 0` }, children: [
-          jsx('button', { type: 'button', style: QUIET, onClick: onBack, children: '← 案件列表' }),
-          onOpenMatter && jsx('button', { type: 'button', style: QUIET, onClick: onOpenMatter, children: '案件详情 ›' }),
+        jsxs('div', { className: 'cb-breadcrumb', children: [
+          jsx('button', { type: 'button', style: QUIET_BREADCRUMB, onClick: onBack, children: '← 案件列表' }),
+          onOpenMatter && jsx('button', { type: 'button', style: QUIET_BREADCRUMB, onClick: onOpenMatter, children: '案件详情 ›' }),
+          jsx('span', { className: 'cb-filter-note', style: TINY, 'aria-live': 'polite', children: sub === 'issues' && issueQuery.trim() ? `${rows.length}/${(context.issues || []).length}` : filterNote }),
         ] }),
-        jsx('div', { style: { ...H2, padding: `2px ${PAD_X} 0` }, children: context.matter?.name || '案件' }),
-        jsx('div', { style: NOTE, children: `读取时间：${dateLabel(context.read_at)}` }),
+        // 案件名统一由公共 Shell 的「当前案件」承载，子页直接进入业务标签。
         !context.issues?.length && !context.facts?.length && !context.pending_items?.length
           && empty('本案尚未登记事实、争点或待办。'),
         // 小标签行在吸顶块内：往下滑事实/争点/待办时，"当前在看哪一类"始终可见。
-        jsxs('div', { style: { display: 'flex', gap: 14, borderBottom: `0.5px solid ${BORDER}`,
+        jsxs('div', { style: { display: 'flex', gap: 12, borderBottom: `1px solid ${BORDER}`,
           margin: `4px ${PAD_X} 0` }, children: [
-          ...subTabs.map(([id, title]) => jsx('button', { type: 'button',
-            style: { ...QUIET, color: sub === id ? TEXT_PRIMARY : TEXT_TERTIARY,
-              fontWeight: sub === id ? 600 : 400,
+          ...subTabs.map(([id, title]) => jsx('button', { type: 'button', className: 'cb-tab', 'aria-pressed': sub === id,
+            style: { ...QUIET, lineHeight: '22px', color: sub === id ? TEXT_PRIMARY : TEXT_TERTIARY,
+              fontWeight: sub === id ? 500 : 400,
               borderBottom: sub === id ? `2px solid ${TEXT_PRIMARY}` : '2px solid transparent',
-              borderRadius: 0, padding: '3px 0' },
+              borderRadius: 0, padding: '6px 0' },
             // 切小标签必须清掉已选争点：否则窄栏下会留在上一条争点的详情里，
             // 出现"标签显示事实、正文却是争点详情"的错位（实测复现）。筛选一并重置。
-            onClick: () => { setSelectedId(null); setFactFilter({ verification: 'all', kind: 'all' }); setPendingFilter('all'); onSub(id); },
+            onClick: () => { setSelectedId(null); setFactFilter({ verification: 'all', kind: 'all' }); setPendingFilter('all'); setIssueQuery(''); onSub(id); },
             children: id === 'pending' && unfinished !== undefined ? `${title} ${unfinished}/${totals[id]}` : `${title} ${totals[id]}` }, id)),
         ] }),
         // 筛选行：事实按核验状态+类别，待办按状态；与标签行同在吸顶块内，筛选条件始终可见。
-        sub === 'facts' && jsxs('div', { style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
-          padding: `6px ${PAD_X} 6px`, borderBottom: `0.5px solid ${BORDER}` }, children: [
-          jsxs('select', { 'aria-label': '按核验状态筛选', value: factFilter.verification, style: SELECT,
-            onChange: (event) => setFactFilter((current) => ({ ...current, verification: event.target.value })),
-            children: FACT_VERIFICATION_GROUPS.map(([value, label]) => jsx('option', { value, children: label }, value)) }),
-          jsxs('select', { 'aria-label': '按事实类别筛选', value: factFilter.kind, style: SELECT,
-            onChange: (event) => setFactFilter((current) => ({ ...current, kind: event.target.value })),
-            children: [jsx('option', { value: 'all', children: '全部类别' }, 'all'),
-              ...factKinds.map((kind) => jsx('option', { value: kind,
-                children: kind === 'unknown' ? '类别待确认' : factKindLabel(kind) }, kind))] }),
-          filterNote ? jsx('span', { style: TINY, children: filterNote }) : null,
+        sub === 'facts' && jsxs('div', { className: 'cb-filter', children: [
+          jsx(FilterSelect, { label: '按核验状态筛选', value: factFilter.verification, options: FACT_VERIFICATION_GROUPS,
+            onChange: value => setFactFilter(current => ({ ...current, verification: value })) }),
+          jsx(FilterSelect, { label: '按事实类别筛选', value: factFilter.kind,
+            options: [['all', '全部类别'], ...factKinds.map(kind => [kind, kind === 'unknown' ? '类别待确认' : factKindLabel(kind)])],
+            onChange: value => setFactFilter(current => ({ ...current, kind: value })) }),
         ] }),
-        sub === 'pending' && jsxs('div', { style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
-          padding: `6px ${PAD_X} 6px`, borderBottom: `0.5px solid ${BORDER}` }, children: [
-          jsxs('select', { 'aria-label': '按状态筛选', value: pendingFilter, style: SELECT,
-            onChange: (event) => setPendingFilter(event.target.value),
-            children: PENDING_FILTERS.map(([value, label]) => jsx('option', { value, children: label }, value)) }),
-          filterNote ? jsx('span', { style: TINY, children: filterNote }) : null,
+        sub === 'pending' && jsxs('div', { className: 'cb-filter', children: [
+          jsx(FilterSelect, { label: '按状态筛选', value: pendingFilter, options: PENDING_FILTERS, onChange: setPendingFilter }),
         ] }),
+        sub === 'issues' && jsx('div', { className: 'cb-filter', children:
+          jsx('input', { 'aria-label': '搜索争点', placeholder: '搜索争点', value: issueQuery,
+            style: { ...INPUT, fontSize: SECONDARY_FONT }, onChange: event => setIssueQuery(event.target.value) }) }),
       ] });
       // 只有争点行可点开详情；事实行是只读浏览；待办行带复选框（写回状态），行本身不展开详情。
-      const list = jsxs('div', { style: { paddingTop: 4 }, children: [
+      // cb-reading-list 是列表分割线的落点（事实行与待办行之间）；没有这个类名，CSS 规则就没有落脚处。
+      const list = jsxs('div', { className: 'cb-reading-list', style: { paddingTop: 0 }, children: [
         rows.map((row) => (row.issue
-          ? jsx(HoverRow, { onClick: () => setSelectedId(row.issue.issue_id),
-            children: jsxs('span', { children: [jsx('strong', { children: row.title }),
+          ? jsx(HoverRow, { reading: true, selected: selectedId === row.issue.issue_id, onClick: () => setSelectedId(row.issue.issue_id),
+            children: jsxs('span', { children: [jsx('strong', { className: 'cb-object-title', children: row.title }),
               jsx('span', { style: { ...MUTED, display: 'block' }, children: row.meta })] }) }, row.key)
           : row.item
             ? jsx(PendingRow, { item: row.item, busy: busyPending, onTogglePending, showIssueRef: true }, row.key)
-            : jsx('div', { style: { ...ROW, display: 'block', cursor: 'default' },
-              children: jsxs('span', { children: [jsx('span', { children: row.title }),
-                jsx('span', { style: { ...TINY, display: 'block', marginTop: 2 }, children: row.meta })] }) }, row.key))),
+            : jsx('div', { className: 'cb-reading-item',
+              children: [jsx('div', { className: 'cb-reading-text', children: row.title }),
+                jsx('div', { className: 'cb-reading-meta', children: row.meta })] }, row.key))),
         !rows.length && empty((sub === 'facts' ? '暂无事实' : sub === 'issues' ? '暂无争点' : '暂无待办')
           + (filterNote ? '（当前筛选条件下）' : '')),
         (context.warnings || []).length > 0 && jsx('div', { style: NOTICE_BOX,
           children: context.warnings.map((warning) => errorLabel(warning, '案件存在待核事项。')).join('；') }),
       ] });
-      // 窄栏：进详情要能返回列表；宽栏：左列表常驻，右侧直接显示详情，不需要返回键。
+      // 单列详情：保留显式返回列表入口。
       const detail = selected
         ? jsxs('div', { children: [
-          !wide && jsx('div', { style: { padding: `2px ${PAD_X}` }, children: jsx('button', {
+          jsx('div', { style: { padding: `4px ${PAD_X}` }, children: jsx('button', {
             type: 'button', style: QUIET, onClick: () => setSelectedId(null), children: '← 争点列表' }) }),
           jsx(IssueDetail, { context, issue: selected, onQuote, quoteNotice, busyPending, onTogglePending }),
         ] })
-        : empty(wide ? '选择一项查看详情' : (sub === 'issues' ? '选择一条争点查看详情与引用入口' : '事实与待办为只读浏览'));
-      if (!wide) return jsxs('div', { children: [head, selected ? detail : list] });
-      return jsxs('div', { children: [
-        head,
-        jsxs('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(320px, 1.4fr)', gap: 16 }, children: [
-          list,
-          jsx('div', { style: { borderLeft: `0.5px solid ${BORDER}`, paddingLeft: 12 }, children: detail }),
-        ] }),
-      ] });
+        : empty(sub === 'issues' ? '选择一条争点查看详情与引用入口' : '浏览事实，勾选待办更新状态');
+      return jsxs('div', { children: [head, selected ? detail : list] });
+    }
+
+    function WorkspaceShell({ tab, onChoose, onRefresh, loading, matter, follow, manual, onReset, onPick, error }) {
+      return jsxs('div', { className: 'cb-workspace-shell', style: { paddingTop: 8, paddingBottom: 4 }, children: [
+          jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: `0 ${PAD_X}` }, children: [
+            jsx('h3', { style: H1, children: '案件工作台' }),
+            // 「重新读取」全面板只有这一个（右上角固定）：在上下文页同样重读上下文
+            // （refresh('context') → syncFollow），子页内不再放第二个（用户要求，2026-10-03）。
+            jsx('button', { type: 'button', style: QUIET, disabled: loading,
+              onClick: onRefresh, children: '重新读取' }),
+          ] }),
+          // 标题→标签行 8px：标签自带6px上内边距，公共区域按新版Compact收紧，且落在 4/8 栅格上。
+          jsxs('div', { style: { display: 'flex', gap: 12, borderBottom: `1px solid ${BORDER}`,
+            margin: `8px ${PAD_X} 0` }, children: [
+            ...[['cases', '案件'], ['practice', '办案经验'], ['context', '案件上下文']].map(([id, title]) => jsx('button', { type: 'button', className: 'cb-tab', 'aria-pressed': tab === id,
+              style: { ...QUIET, lineHeight: '22px', color: tab === id ? TEXT_PRIMARY : TEXT_TERTIARY,
+                fontWeight: tab === id ? 500 : 400,
+                borderBottom: tab === id ? `2px solid ${TEXT_PRIMARY}` : '2px solid transparent',
+                // 6px 纵向内边距 + 22px 行高 + 2px 下划线 = 36px（与 QUIET 的 7px 不同，必须显式写）。
+                borderRadius: 0, padding: '6px 0' },
+              onClick: () => onChoose(id), children: title }, id)),
+          ] }),
+          // 面板顶部这一行就是案件详情页的标题：案件名 20/28/500（§5.1 子页标题／§5.3 案件名），
+          // 下面紧跟它的阶段与身份——原来这两处在详情页里又写了一遍（用户 2026-10-03：重复了）。
+          // 切换与恢复跟随是次级操作（13/20），路径与来源是技术信息（12/18）；层级靠字号，不靠灰底。
+          jsxs('details', { className: 'cb-context-actions', children: [
+            jsxs('summary', { className: 'cb-current-summary', 'aria-label': '当前案件与更多操作', children: [
+              jsxs('span', { className: 'cb-current', style: { flex: 1, minWidth: 0 }, children: [
+                // 未选择案件时也用**同一套标题格式**：「当前案件：待选择」。
+                // 原来这里只有一行裸文本提示：字号继承正文，又占不满 .cb-current 预留的 48px 信息槽
+                // （名称 28 + 小字 18 = 46），于是它到下方搜索框之间空出一大截——用户 2026-10-04 截图
+                // 指出「选择案件后间距正常，未选择时太远」。标题 + 小字两行铺满同一个信息槽，间距就一致了。
+                jsx('span', { className: 'cb-current-line', title: matter?.name || '',
+                  children: jsxs('span', { children: [jsx('span', { className: 'cb-current-label', children: '当前案件：' }),
+                    jsx('span', { className: 'cb-current-name', children: matter?.name || '待选择' })] }) }),
+                // 小字与选中后的「阶段待确认 · 上诉人」同格式同位置（12/18 次级色、紧跟名称下方）。
+                matter?.name
+                  ? matterMeta(matter) && jsx('span', { className: 'cb-current-meta', children: matterMeta(matter) })
+                  : jsx('span', { className: 'cb-current-meta', children: '选择案件后查看详情与上下文' }),
+              ] }),
+              jsx('span', { className: 'cb-arrow', 'aria-hidden': true,
+                style: { width: 16, textAlign: 'center', flexShrink: 0, color: TEXT_TERTIARY } }),
+            ] }),
+            jsxs('div', { style: { display: 'flex', gap: 12, flexWrap: 'wrap' }, children: [
+              jsx('button', { type: 'button', style: QUIET_SMALL, onClick: () => onChoose('cases'), children: '切换案件' }),
+              manual && jsx('button', { type: 'button', style: QUIET_SMALL,
+                onClick: onReset, children: '恢复跟随会话' }),
+            ] }),
+            jsx('div', { className: 'cb-technical', style: NOTE, children: `工作区：${follow.cwd || '未登记'}` }),
+            jsx('div', { className: 'cb-technical', style: NOTE, children: `选择来源：${manual ? '手动选择（仅当前会话）' : follow.source === 'reference' ? '最近已发送引用' : '跟随会话工作区'}` }),
+          ] }),
+          !manual && follow.status === 'ambiguous' && jsxs('div', { style: { marginTop: 8 }, children: [
+            caption('会话关联多个案件，请选择本次办理的案件。'),
+            ...(follow.candidates || []).map((entry) => jsx('button', {
+              type: 'button', style: BUTTON, onClick: () => onPick(entry),
+              children: entry.name }, entry.id)),
+          ] }),
+          error && jsx('div', { role: 'alert', style: NOTICE_BOX, children: error }),
+          loading && jsx('div', { role: 'status', style: NOTE, children: '正在读取…' }),
+        ] });
     }
 
     function CaseBenchBody(props) {
       const remote = props.remote;
       const { tab: currentTab } = props.useTabInfo();
       const holder = useRef(null);
-      const [wide, setWide] = useState(false);
       const [tab, setTab] = useState('cases');
       const [query, setQuery] = useState('');
       const [workspace, setWorkspace] = useState(null);
@@ -758,29 +1060,15 @@ window.__ModuleLoader__.load({
       }
       function visible(ticket) { return gate.current(ticket); }
 
-      useEffect(() => {
-        if (!holder.current || typeof ResizeObserver === 'undefined') return;
-        // 760px 以下一律单列：面板多在窄栏里使用，两列会把每列压到读不下内容。
-        const observer = new ResizeObserver((entries) => setWide((entries[0]?.contentRect?.width || 0) >= 760));
-        observer.observe(holder.current);
-        return () => observer.disconnect();
-      }, []);
-      useEffect(() => {
-        // 实测侧栏面板底色：主题没有公开"侧栏表面"变量（bg-overlay 是浮层色，
-        // 直接用在吸顶页头上是一块不搭的灰板——破产面板实测）。挂载后向上找第一个
-        // 非透明背景的祖先，写进 --cb-pane-bg 供吸顶页头引用；两个主题都正确。
-        // 已知限制：只在挂载时实测一次，主题切换后需重新打开面板才更新。
-        let node = holder.current;
-        while (node) {
-          const bg = globalThis.getComputedStyle ? globalThis.getComputedStyle(node).backgroundColor : null;
-          if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
-            holder.current.style.setProperty('--cb-pane-bg', bg);
-            break;
-          }
-          node = node.parentElement;
-        }
-        return undefined;
-      }, []);
+      usePaneTheme(holder);
+      async function displayMatter(snapshot) {
+        const base = snapshot?.matter;
+        if (!base || (base.stage && base.role) || !remote.matter) return base;
+        const view = unwrap(await remote.matter({ path: base.path, sessionId: props.sessionId }));
+        if (view.matter?.path !== base.path || (view.matter.id && base.id && view.matter.id !== base.id)) return base;
+        return { ...base, stage: base.stage ?? view.matter.stage, role: base.role ?? view.matter.role, type: base.type ?? view.matter.type };
+      }
+
       async function syncFollow(initial = false, ticket = gate.begin()) {
         setLoading(true); setError('');
         try {
@@ -788,11 +1076,17 @@ window.__ModuleLoader__.load({
           const association = unwrap(await remote.followSession({ sessionId: props.sessionId,
             ...(manual ? { matterPath: manual.path, matterId: manual.matter_id } : {}) }));
           if (!visible(ticket)) return;
-          setFollow(association);
+          // 只读结果深度相同就不落库：远程只读视图是纯 JSON，值没变就没有"新的真相"，
+          // 不必重绘（这也是切断"重读→写状态→通知→再重读"回环的第二道保险）。
+          setFollow((current) => sameJson(current, association) ? current : association);
           const nextContext = association.context;
           if (!visible(ticket)) return;
-          const entry = nextContext ? { path: nextContext.matter.path, matter_id: nextContext.matter.id, name: nextContext.matter.name } : null;
-          setMatter(entry); setContext(nextContext || null); setQuoteNotice('');
+          const display = await displayMatter(nextContext);
+          if (!visible(ticket)) return;
+          const entry = display ? { ...display, matter_id: display.id } : null;
+          setMatter((current) => sameJson(current, entry) ? current : entry);
+          setContext((current) => sameJson(current, nextContext ?? null) ? current : (nextContext ?? null));
+          setQuoteNotice('');
           // 会话关联到了别的案件时，清掉不属于它的详情页；但没有关联（entry 为 null）
           // 不得清——重挂载恢复详情页时 syncFollow 与 openMatter 并发，恢复完成的详情
           // 不能被晚到的"无关联"结果清掉（2026-10-03 恢复功能引入）。
@@ -841,11 +1135,18 @@ window.__ModuleLoader__.load({
         })();
         return () => { active = false; gate.begin(); };
       }, [remote, props.sessionId]);
+      /**
+       * 回合结束后只读当前关联。依赖必须是**原始值**：`summary` 是 sessions store 里的对象，
+       * 宿主在会话状态变化时会给出新引用，若直接依赖它，就会出现
+       * 「重读关联 → 宿主写会话状态 → summary 换引用 → 再重读」的空转回环——
+       * 空闲时也会每 250ms 重绘一次（实测症状：面板持续闪烁）。
+       * 这里只关心"回合是否结束"，所以只依赖 running 这个布尔值。
+       */
       useEffect(() => {
         if (!initialized.current || summary?.running) return;
         const timer = setTimeout(() => void syncFollow(), 250);
         return () => clearTimeout(timer);
-      }, [summary]);
+      }, [summary?.running]);
       useEffect(() => {
         const focus = () => { if (initialized.current) void syncFollow(); };
         window.addEventListener?.('focus', focus);
@@ -855,7 +1156,7 @@ window.__ModuleLoader__.load({
         setLoading(true); setError('');
         try {
           const data = unwrap(await remote.matter({ path: entry.path, sessionId: props.sessionId }));
-          if (visible(ticket)) { setMatterPage(entry.page || 'main'); setDetail({ kind: 'matter', data }, entry.page || 'main'); }
+          if (visible(ticket)) { setMatter({ ...data.matter, matter_id: data.matter.id }); setMatterPage(entry.page || 'main'); setDetail({ kind: 'matter', data }, entry.page || 'main'); }
         } catch (failure) { if (visible(ticket)) setError(errorLabel(failure)); }
         finally { if (visible(ticket)) setLoading(false); }
       }
@@ -889,7 +1190,8 @@ window.__ModuleLoader__.load({
         setLoading(true); setError('');
         try {
           const data = unwrap(await remote.context({ sessionId: props.sessionId, matterPath: entry.path, matterId: entry.matter_id }));
-          if (visible(ticket)) setContext(data);
+          const display = await displayMatter(data);
+          if (visible(ticket)) { setContext(data); setMatter({ ...display, matter_id: display.id }); }
         } catch (failure) { if (visible(ticket)) setError(errorLabel(failure)); }
         finally { if (visible(ticket)) setLoading(false); }
       }
@@ -966,29 +1268,37 @@ window.__ModuleLoader__.load({
           if (visible(ticket)) { setBusyPending(''); await syncFollow(); }
         }
       }
-      // 上下文标签不显示案件/经验列表：它不是这两个列表的第三种取值。
+      // 上下文拥有自己的对象列表。
       const listTab = tab === 'practice' ? 'practice' : 'cases';
       const items = listTab === 'cases' ? workspace?.matters || [] : notes?.notes || [];
       const filtered = items.filter((item) => [item.name, item.title, item.matter_name, item.search_text]
         .filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase()));
-      const list = jsxs('div', { children: [
-        jsx('input', { 'aria-label': listTab === 'cases' ? '搜索案件' : '搜索办案经验',
+      // 公共 Shell 底部 8px 接搜索；Search → 首行 12px（8px + 行外边距4px），水平轨不变。
+      const list = jsxs('div', { className: 'cb-list', children: [
+        jsx('input', { id: `cb-search-${props.sessionId}`, 'aria-label': listTab === 'cases' ? '搜索案件' : '搜索办案经验',
           placeholder: listTab === 'cases' ? '搜索案件' : '搜索办案经验', value: query,
           onChange: (event) => setQuery(event.target.value),
-          style: INPUT }),
+          style: { ...INPUT, marginBottom: 8 } }),
         filtered.map((item, index) => jsx(HoverRow, {
-          disabled: item.status === 'error',
+          disabled: item.status === 'error', kind: listTab === 'cases' ? 'case' : 'practice',
+          selected: listTab === 'cases' && (matter?.path === item.path || detail?.data?.matter?.path === item.path),
           onClick: () => listTab === 'cases' ? chooseMatter(item) : openNote(item),
           children: jsxs('span', { children: [jsx('strong', { children: item.name || item.title }),
-            jsx('span', { style: { ...MUTED, display: 'block' }, children: item.status === 'error' ? `状态异常：${errorLabel(item.error)}`
-              // 阶段未知时省略该段：本工作区 5 案的 stage 全为 unknown，逐行重复"阶段待确认"没有信息量。
-              : tab === 'cases' ? [
-                item.proceeding_count > 1 ? `${item.proceeding_count} 个关联案件` : '',
-                item.stage && item.stage !== 'unknown' ? stageLabel(item.stage) : '',
-                item.next_event ? dateLabel(item.next_event.at).slice(0, 16) : '']
-                .filter(Boolean).join(' · ')
-                : `来源：${item.matter_name || '待核'}` }),
-            item.recent_artifact && jsx('span', { style: { ...MUTED, display: 'block' }, children: `最近：${item.recent_artifact.title || '成果'}` }),
+            // 案件列表的小字统一为两段：**案件类型 · 我方立场**（用户 2026-10-04）。
+            // 不再逐案显示关联案件数／阶段／开庭日，也不显示最近成果——同一次扫描里每一行的这两个词
+            // 含义完全一致，读者不必逐行判断这是什么信息。类型取 matter.type（诉讼/破产/非诉），
+            // 立场取 engagement.role（原告/上诉人/管理人/债务人…），缺失时各自给中文提示，不留空段。
+            // 读取失败的行改显示故障原因（那不是状态描述，去掉只剩一个点不动的死行）。
+            listTab === 'cases'
+              ? jsx('span', { style: { ...MUTED, display: 'block' },
+                  children: item.status === 'error'
+                    ? `状态异常：${errorLabel(item.error)}`
+                    : `${caseTypeLabel(item.type)} · ${roleLabel(item.role, item.type)}` })
+              : jsxs('span', { children: [
+                  jsx('span', { style: { ...MUTED, display: 'block' }, children: `来源：${item.matter_name || '待核'}` }),
+                  item.recent_artifact && jsx('span', { style: { ...MUTED, display: 'block' },
+                    children: `最近：${item.recent_artifact.title || '成果'}` }),
+                ] }),
           ] }),
         }, rowKey(listTab, item, index))),
         !filtered.length && empty(query ? '没有匹配结果' : '暂无内容'),
@@ -1015,86 +1325,50 @@ window.__ModuleLoader__.load({
               // 上下文里也能打开案件详情：detail 一经设置，上面第一个分支即渲染 MatterDetail，
               // 它自己的「← 返回」清空 detail 就回到上下文。
               onBack: backFromContext, onOpenMatter: matter ? openContextMatter : null,
-              quoteNotice, wide, busyPending, onTogglePending: togglePending }, context.matter?.id || 'context')
+              quoteNotice, busyPending, onTogglePending: togglePending }, context.matter?.id || 'context')
             : null;
       const contextHint = tab === 'context' && !context
         ? empty(loading ? '正在读取案件上下文…' : follow.status === 'ambiguous' ? '会话关联多个案件，请选择。' : '当前会话未解析到案件，请先在「案件」中选择。')
         : null;
-      // 上下文标签自己排两栏（列表｜详情），所以这里不再套一层列表；其它标签沿用原有分栏。
-      const leftPane = tab === 'context' ? null : list;
-      const rightPane = tab === 'context' ? (detailNode || contextHint) : (detailNode || empty('选择一项查看详情'));
-      // 根容器留白 6px（冻结规范 §三：框外文字行再叠 PAD_X 4px，文字左边统一落在 10px）。
-      // 上边距**不能**给滚动容器：吸顶页头以滚动容器内容盒顶为吸附线，容器带上边距时
-      // 页头会停在距顶 12px 处，顶上那条会漏出滚动内容。改由第一个内容块给上边距。
-      return jsxs('div', { ref: holder, style: { color: TEXT_PRIMARY, font: 'inherit', fontSize: FONT,
-        lineHeight: '20px', padding: '0 6px 12px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }, children: [
-        // 下方吸顶头块有 10px 向上延伸的遮罩：预留 12px 不可折叠的底部内边距，
-        // 避免正常文档流中遮住「切换案件 / 恢复跟随会话」按钮底边。
-        jsxs('div', { style: { paddingTop: 12, paddingBottom: 12 }, children: [
-          jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: `0 ${PAD_X}` }, children: [
-            jsx('h3', { style: H1, children: '案件工作台' }),
-            // 「重新读取」全面板只有这一个（右上角固定）：在上下文页同样重读上下文
-            // （refresh('context') → syncFollow），子页内不再放第二个（用户要求，2026-10-03）。
-            jsx('button', { type: 'button', style: QUIET,
-              onClick: () => refresh(tab === 'context' ? 'context' : listTab), children: '重新读取' }),
-          ] }),
-          jsxs('div', { style: { display: 'flex', gap: 14, borderBottom: `0.5px solid ${BORDER}`,
-            margin: `4px ${PAD_X} 8px` }, children: [
-            ...[['cases', '案件'], ['practice', '办案经验'], ['context', '案件上下文']].map(([id, title]) => jsx('button', { type: 'button',
-              style: { ...QUIET, color: tab === id ? TEXT_PRIMARY : TEXT_TERTIARY,
-                fontWeight: tab === id ? 600 : 400,
-                borderBottom: tab === id ? `2px solid ${TEXT_PRIMARY}` : '2px solid transparent',
-                borderRadius: 0 },
-              onClick: () => choose(id), children: title }, id)),
-          ] }),
-          // 工作区信息：两行备注小字 + 独立的按钮行。按钮不再用 marginLeft 跟在文字后面
-          // （那样与上下文字都不对齐——用户截图指出），间隔由容器 gap 承担。
-          jsxs('div', { style: { marginBottom: 8 }, children: [
-            jsx('div', { style: NOTE, children: `Agent 工作区：${follow.cwd || '未登记'}` }),
-            jsx('div', { style: NOTE, children: `选择来源：${manualRef.current ? '手动选择（仅当前会话）' : follow.source === 'reference' ? '最近已发送引用' : '跟随会话工作区'}` }),
-            jsxs('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', padding: `4px ${PAD_X} 0` }, children: [
-              jsx('button', { type: 'button', style: BUTTON, onClick: () => choose('cases'), children: '切换案件' }),
-              manualRef.current && jsx('button', { type: 'button', style: BUTTON,
-                onClick: () => { remember(null); setDetail(null); void syncFollow(true); }, children: '恢复跟随会话' }),
-              !manualRef.current && follow.status === 'ambiguous' && (follow.candidates || []).map((entry) => jsx('button', {
-                type: 'button', style: BUTTON, onClick: () => { const selected = { path: entry.path, matter_id: entry.id }; remember(selected); void goContext(selected); },
-                children: entry.name }, entry.id)),
-            ] }),
-          ] }),
-          error && jsx('div', { role: 'alert', style: NOTICE_BOX, children: error }),
-          loading && empty('正在读取…'),
-        ] }),
-        // 上下文标签自己排栏（ContextDetail 内按 wide 决定），这里给它整幅宽度；
-        // 其它标签沿用原有的两栏/单列。
-        tab === 'context'
-          ? jsx('div', { children: rightPane })
-          : wide
-            ? jsxs('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(320px, 1.5fr)', gap: 16 }, children: [
-              jsx('div', { children: leftPane }),
-              jsx('div', { style: { borderLeft: `0.5px solid ${BORDER}`, paddingLeft: 12 }, children: rightPane })] })
-            : jsx('div', { children: detailNode || list }),
+      // 上下文直接显示当前案件视图。
+      const rightPane = detailNode || contextHint;
+      return jsxs('div', { ref: holder, className: 'cb-panel cb-workspace', 'aria-busy': loading,
+        style: { ...PANEL_STYLE, flex: '1 1 auto', minHeight: 0, height: '100%', overflow: 'hidden' }, children: [
+        jsx(PanelStyles, {}),
+        WorkspaceShell({ tab, onChoose: choose, onRefresh: () => refresh(tab === 'context' ? 'context' : listTab),
+          loading, matter: detail?.kind === 'matter' ? detail.data.matter : tab === 'context' ? matter || context?.matter : matter,
+          follow, manual: manualRef.current, error,
+          onReset: () => { remember(null); setDetail(null); void syncFollow(true); },
+          onPick: (entry) => { const selected = { path: entry.path, matter_id: entry.id }; remember(selected); void goContext(selected); } }),
+        jsx('div', { className: 'cb-scroll-body', children: tab === 'context' ? rightPane : detailNode || list }),
       ] });
     }
 
     function SettingsSection({ remote }) {
+      const holder = useRef(null);
+      usePaneTheme(holder);
       const [status, setStatus] = useState(null);
       const [count, setCount] = useState(null);
       const [error, setError] = useState('');
+      const [loading, setLoading] = useState(true);
       async function refresh() {
-        setError('');
+        setError(''); setLoading(true);
         try {
           const [settings, workspace] = await Promise.all([remote.status(), remote.workspace()]);
           setStatus(unwrap(settings)); setCount(unwrap(workspace).matter_count);
-        } catch (failure) { setError(errorLabel(failure)); }
+        } catch (failure) { setError(errorLabel(failure)); } finally { setLoading(false); }
       }
       useEffect(() => { void refresh(); }, [remote]);
-      return jsxs('div', { style: { color: TEXT_PRIMARY, fontSize: FONT, lineHeight: '20px',
-        maxWidth: 640, padding: 12 }, children: [
-        heading('案件工作台'), labelled('工作区路径', status?.root),
-        labelled('核心版本', versionLabel(status?.coreVersion)), labelled('已发现案件', count),
+      return jsxs('div', { ref: holder, className: 'cb-panel', style: { ...PANEL_STYLE, paddingTop: 16 }, children: [
+        jsx(PanelStyles, {}), heading('案件工作台'),
+        loading && jsx('div', { role: 'status', style: NOTE, children: '正在读取设置…' }),
+        jsxs('section', { className: 'cb-content', style: CONTENT, children: [
+          labelled('工作区路径', status?.root), jsx('div', { style: DIVIDER }),
+          labelled('核心版本', versionLabel(status?.coreVersion)), jsx('div', { style: DIVIDER }),
+          labelled('已发现案件', count),
+        ] }),
         jsx('div', { style: { ...NOTE, marginBottom: 8 }, children: '工作区路径可在当前配置方案的案件工作台插件配置中修改。' }),
-        jsx('button', { type: 'button', style: BUTTON, onClick: refresh, children: '重新读取' }),
+        jsx('button', { type: 'button', style: QUIET, disabled: loading, onClick: refresh, children: '重新读取' }),
         error && jsx('div', { role: 'alert', style: NOTICE_BOX, children: error }),
       ] });
     }
@@ -1131,9 +1405,10 @@ window.__ModuleLoader__.load({
     }
 
     exports.INVOCATIONS = INVOCATIONS;
-    exports.uiHelpers = { fileAddress, stageLabel, roleLabel, statusLabel, kindLabel, authorityLabel,
+    exports.uiHelpers = { fileAddress, stageLabel, roleLabel, statusLabel, kindLabel, authorityLabel, caseTypeLabel,
       verificationLabel, errorLabel, versionLabel, dateLabel, rowKey, matterSelectionTab,
       quoteText, createRequestGate, CaseBenchBody, MatterDetail, ContextDetail, factVerificationLabel, issueStatusLabel, confidenceLabel, factKindLabel, materialGradeLabel, pendingStatusLabel, subTabs,
+      PracticeDetail, SettingsSection, HoverRow, PendingRow, FilterSelect, WorkspaceShell, PanelStyles, PANEL_STYLE, INPUT, SELECT, CONTENT, pageGutter,
       factVerificationGroup, factMatchesFilter, pendingMatchesFilter, isSettledPending,
       FACT_VERIFICATION_GROUPS, PENDING_FILTERS,
       outerTabs: [['cases', '案件'], ['practice', '办案经验'], ['context', '案件上下文']] };
